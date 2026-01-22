@@ -4,6 +4,10 @@ settings.yaml
 memory.json
 memory.json.tmp
 
+# Database files
+chroma_db/
+relationships.db
+
 # Python cache
 __pycache__/
 *.py[cod]

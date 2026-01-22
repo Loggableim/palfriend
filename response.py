@@ -259,7 +259,7 @@ class ResponseEngine:
             if self.mood_manager:
                 try:
                     # Positive interaction
-                    self.mood_manager.update_mood("positive_chat", 7)
+                    self.mood_manager.update_mood("positive_chat")
                 except Exception as e:
                     log.warning(f"Failed to update mood: {e}")
             
