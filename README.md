@@ -356,6 +356,7 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed gu
 
 - **[README.md](README.md)** - This file, main documentation
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete 7-phase system architecture
+- **[SECURITY.md](SECURITY.md)** - Security assessment and best practices
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and changes
 - **[CONTRIBUTING.md](CONTRIBUTING.md)** - Contribution guidelines
 - **[WEB_INTERFACE_README.md](WEB_INTERFACE_README.md)** - Web interface documentation
