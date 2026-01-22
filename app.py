@@ -252,6 +252,99 @@ def get_defaults():
     return jsonify({'success': True, 'data': DEFAULT_SETTINGS})
 
 
+@app.route('/api/persona/state', methods=['GET'])
+def get_persona_state():
+    """Get current persona state."""
+    try:
+        from response import ResponseEngine
+        cfg = load_settings()
+        memory = load_memory(cfg.get("memory", {}).get("file", "memory.json"))
+        engine = ResponseEngine(cfg, memory)
+        
+        scope_id = request.args.get('scope_id', 'session')
+        state = engine.get_persona_state(scope_id)
+        
+        if state is None:
+            return jsonify({
+                'success': False, 
+                'error': 'Personality system not enabled or not available'
+            }), 400
+        
+        return jsonify({'success': True, 'data': state})
+    except Exception as e:
+        log.error(f"Failed to get persona state: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/persona/reset', methods=['POST'])
+def reset_persona():
+    """Reset persona state to defaults."""
+    try:
+        from response import ResponseEngine
+        cfg = load_settings()
+        memory = load_memory(cfg.get("memory", {}).get("file", "memory.json"))
+        engine = ResponseEngine(cfg, memory)
+        
+        data = request.get_json() or {}
+        scope_id = data.get('scope_id', 'session')
+        
+        success = engine.reset_persona(scope_id)
+        
+        if not success:
+            return jsonify({
+                'success': False, 
+                'error': 'Personality system not enabled or reset failed'
+            }), 400
+        
+        return jsonify({'success': True, 'message': f'Persona reset for {scope_id}'})
+    except Exception as e:
+        log.error(f"Failed to reset persona: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/persona/update', methods=['PATCH'])
+def update_persona():
+    """Update persona tone weights or stance overrides."""
+    try:
+        from modules.persona_state import PersonaStateStore
+        cfg = load_settings()
+        personality_config = cfg.get("personality_bias", {})
+        
+        if not personality_config.get("enabled", 0):
+            return jsonify({
+                'success': False, 
+                'error': 'Personality system not enabled'
+            }), 400
+        
+        db_path = personality_config.get("persistence", {}).get("db_path", "./persona_state.db")
+        store = PersonaStateStore(personality_config, db_path)
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        scope_id = data.get('scope_id', 'session')
+        tone_weights = data.get('tone_weights')
+        stance_overrides = data.get('stance_overrides')
+        
+        # Get current state
+        current_state = store.get_state(scope_id)
+        
+        # Update with new values
+        if tone_weights is not None:
+            current_state['tone_weights'] = tone_weights
+        if stance_overrides is not None:
+            current_state['stance_overrides'] = stance_overrides
+        
+        # Save updated state
+        store.save_state(scope_id, current_state['tone_weights'], current_state['stance_overrides'])
+        
+        return jsonify({'success': True, 'message': 'Persona updated', 'data': current_state})
+    except Exception as e:
+        log.error(f"Failed to update persona: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 # WebSocket events
 
 @socketio.on('connect')
