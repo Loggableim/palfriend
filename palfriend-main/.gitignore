@@ -1,0 +1,43 @@
+# Settings and memory files
+settings.json
+settings.yaml
+memory.json
+memory.json.tmp
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Frontend
+frontend/node_modules/
+frontend/build/
+frontend/dist/
+frontend/.vite/
+frontend/package-lock.json
+frontend/yarn.lock
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local

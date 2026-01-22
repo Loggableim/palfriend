@@ -1,0 +1,10 @@
+openai>=1.0.0
+numpy>=1.24.0
+sounddevice>=0.4.6
+websockets>=11.0.0
+TikTokLive>=6.0.0
+PyYAML>=6.0.1
+flask>=3.0.0
+flask-cors>=4.0.0
+flask-socketio>=5.3.5
+python-socketio>=5.10.0
