@@ -11,6 +11,9 @@ from typing import Dict, Any, Optional
 import openai
 
 from memory import get_background_info
+from modules.rag import RAGEngine
+from modules.mood import MoodManager, Mood
+from modules.relationships import RelationshipManager
 
 log = logging.getLogger("ChatPalBrain")
 
@@ -130,6 +133,18 @@ class ResponseEngine:
         cache_size = int(cfg.get("openai", {}).get("cache_size", 128))
         self.reply_to_comment = lru_cache(maxsize=cache_size)(self._reply_to_comment_impl)
         self.timeout = float(cfg.get("openai", {}).get("request_timeout", 10.0))
+        
+        # Initialize new features
+        try:
+            self.rag_engine = RAGEngine(persist_directory="./chroma_db")
+            self.mood_manager = MoodManager(initial_mood=Mood.NEUTRAL)
+            self.relationship_manager = RelationshipManager(db_path="./relationships.db")
+            log.info("Enhanced features initialized: RAG, Mood, and Relationships")
+        except Exception as e:
+            log.warning(f"Failed to initialize enhanced features: {e}. Continuing without them.")
+            self.rag_engine = None
+            self.mood_manager = None
+            self.relationship_manager = None
     
     def _make_cache_key(self, nick: str, text: str, uid: str) -> tuple:
         """
@@ -159,6 +174,45 @@ class ResponseEngine:
         """
         user_history = "\n".join(self.memory["users"].get(uid, {}).get("messages", []))
         bg_info = get_background_info(self.memory, uid)
+        
+        # Fetch RAG context if available
+        rag_context = ""
+        if self.rag_engine:
+            try:
+                contexts = self.rag_engine.get_context(text, uid, n_results=3)
+                if contexts:
+                    rag_context = "\nRelevant past interactions:\n" + "\n".join(
+                        [f"- {ctx['text']}" for ctx in contexts]
+                    )
+            except Exception as e:
+                log.warning(f"Failed to get RAG context: {e}")
+        
+        # Get user's friendship level if available
+        friendship_level = "Stranger"
+        if self.relationship_manager:
+            try:
+                level_info = self.relationship_manager.get_user_info(uid)
+                friendship_level = level_info['level']
+            except Exception as e:
+                log.warning(f"Failed to get friendship level: {e}")
+        
+        # Get mood modifier if available
+        mood_modifier = ""
+        if self.mood_manager:
+            try:
+                mood_modifier = f"\n{self.mood_manager.get_prompt_modifier()}"
+            except Exception as e:
+                log.warning(f"Failed to get mood modifier: {e}")
+        
+        # Construct enhanced system prompt
+        enhanced_system_prompt = self.system_prompt
+        if mood_modifier or friendship_level != "Stranger" or rag_context:
+            mood_value = self.mood_manager.get_mood().value if self.mood_manager else 'neutral'
+            enhanced_system_prompt += f"\n\nCurrent Mood: {mood_value}"
+            enhanced_system_prompt += f"{mood_modifier}"
+            enhanced_system_prompt += f"\nUser Relationship Level: {friendship_level}"
+            enhanced_system_prompt += rag_context
+        
         prompt = f"User: {nick}\nBackground: {bg_info}\nChat history:\n{user_history}\nCurrent comment: {text}"
         
         try:
@@ -166,7 +220,7 @@ class ResponseEngine:
                 self.openai_client.chat.completions.create,
                 model=self.cfg["openai"]["model"],
                 messages=[
-                    {"role": "system", "content": self.system_prompt},
+                    {"role": "system", "content": enhanced_system_prompt},
                     {"role": "user", "content": prompt}
                 ],
             )
@@ -178,6 +232,38 @@ class ResponseEngine:
             if len(words) > 18:
                 reply = " ".join(words[:18]) + "."
             
+            # Save interaction to RAG if available
+            if self.rag_engine:
+                try:
+                    self.rag_engine.add_memory(uid, text, "user")
+                    self.rag_engine.add_memory(uid, reply, "assistant")
+                except Exception as e:
+                    log.warning(f"Failed to save to RAG: {e}")
+            
+            # Update friendship XP if available
+            if self.relationship_manager:
+                try:
+                    # Determine interaction type
+                    interaction_type = "message"
+                    if "?" in text:
+                        interaction_type = "question"
+                    elif self.is_greeting(text):
+                        interaction_type = "greeting"
+                    elif self.is_thanks(text):
+                        interaction_type = "thanks"
+                    
+                    self.relationship_manager.award_interaction_xp(uid, interaction_type, nick)
+                except Exception as e:
+                    log.warning(f"Failed to update relationship XP: {e}")
+            
+            # Update mood based on interaction if available
+            if self.mood_manager:
+                try:
+                    # Positive interaction
+                    self.mood_manager.update_mood("positive_chat")
+                except Exception as e:
+                    log.warning(f"Failed to update mood: {e}")
+            
             return reply
         except asyncio.TimeoutError:
             log.error(f"OpenAI Timeout nach {self.timeout}s")
@@ -188,3 +274,16 @@ class ResponseEngine:
         except Exception as e:
             log.error(f"OpenAI Fehler: {e}")
             return None
+    
+    def is_greeting(self, text: str) -> bool:
+        """Helper to check if text is a greeting."""
+        greetings_re = re.compile(
+            r"\b(?:hallo|hi|hey|servus|moin|gruss|gru[eü]ß|guten morgen|guten abend|hello)\b",
+            re.I | re.UNICODE
+        )
+        return bool(greetings_re.search(text))
+    
+    def is_thanks(self, text: str) -> bool:
+        """Helper to check if text is a thanks message."""
+        thanks_re = re.compile(r"\b(?:danke|thx|thanks|ty|merci)\b", re.I | re.UNICODE)
+        return bool(thanks_re.search(text))
