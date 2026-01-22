@@ -1,0 +1,192 @@
+# Example settings.yaml with Personality-Bias enabled
+#
+# This is a sample configuration showing the personality-bias feature.
+# Copy relevant sections to your settings.yaml to enable the feature.
+
+# TikTok connection settings
+tiktok:
+  unique_id: "@YourTikTokUsername"
+  session_id: ""
+
+# Animaze WebSocket settings
+animaze:
+  host: localhost
+  port: 9000
+  retry_max_attempts: 5
+  retry_base_delay: 1.0
+
+# OpenAI API settings
+openai:
+  api_key: "your-api-key-here"
+  model: gpt-4o-mini
+  cache_size: 128
+  request_timeout: 10.0
+
+# Base system prompt (will be enhanced with personality)
+system_prompt: "Neutraler Assistent: präzise, kurze Antworten (max 25 Wörter) basierend auf Chat-Kontext und Memory."
+
+# ========================================
+# PERSONALITY-BIAS CONFIGURATION
+# ========================================
+personality_bias:
+  # Enable/disable the personality system
+  enabled: 1  # Set to 0 to disable
+  
+  # Define your AI's persona
+  persona_profile:
+    name: "StreamBuddy"
+    backstory: "A friendly streaming assistant who loves engaging with chat and helping the streamer."
+    key_traits:
+      - engaging
+      - enthusiastic  
+      - helpful
+      - witty
+  
+  # Tone distribution (must sum to ~1.0)
+  # Adjust these to match your desired personality
+  tone_weights:
+    formal: 0.2      # Professional, proper language
+    casual: 0.5      # Relaxed, conversational
+    playful: 0.25    # Fun, joking, emojis
+    sarcastic: 0.05  # Witty, ironic responses
+  
+  # Topic-based opinion patterns (optional)
+  # Define stances on specific topics
+  stance_overrides:
+    gaming: "enthusiastic - loves all genres"
+    music: "eclectic taste, open to suggestions"
+    # Add more topics as needed
+  
+  # How fast the personality drifts naturally (0.0-1.0)
+  # 0.0 = Static personality, 0.05 = Moderate drift, 0.1 = High drift
+  volatility: 0.02
+  
+  # Evolution rules - how personality changes based on interactions
+  evolution_rules:
+    enabled: 1
+    
+    triggers:
+      # When users are positive, become more playful
+      positive_interaction:
+        magnitude: 0.03
+        target_tone: playful
+      
+      # When users ask serious questions, become more formal  
+      serious_question:
+        magnitude: 0.02
+        target_tone: formal
+      
+      # When spam detected, become more sarcastic
+      spam_detected:
+        magnitude: 0.04
+        target_tone: sarcastic
+      
+      # Gifts make the bot more enthusiastic
+      gift_received:
+        magnitude: 0.05
+        target_tone: playful
+    
+    # Clamps prevent tones from going too extreme
+    clamps:
+      formal: [0.1, 0.6]      # Min 10%, max 60%
+      casual: [0.2, 0.7]      # Min 20%, max 70%
+      playful: [0.0, 0.5]     # Max 50%
+      sarcastic: [0.0, 0.2]   # Max 20% (keep it friendly)
+  
+  # Refusal patterns - when to refuse responding
+  refusals:
+    enabled: 1
+    
+    patterns:
+      # Brief dismissal for spam/offensive content
+      - trigger: ["spam", "offensive", "inappropriate"]
+        mode: brief_and_cold
+      
+      # Polite decline for sensitive topics
+      - trigger: ["nsfw", "explicit"]
+        mode: polite_decline
+      
+      # Redirect for off-topic
+      - trigger: ["politics", "religion"]
+        mode: redirect
+    
+    modes:
+      brief_and_cold: "I'd rather not respond to that."
+      polite_decline: "I appreciate your message, but let's keep the chat friendly!"
+      redirect: "That's interesting, but let's focus on [current topic]!"
+  
+  # Safety overrides - ALWAYS enforced (highest priority)
+  safety_overrides:
+    forbidden_topics:
+      - violence
+      - hate_speech
+      - illegal_activity
+      - self_harm
+    always_refuse: 1  # Always set to 1 for safety
+  
+  # How to inject persona into system prompt
+  # Options: prepend, append, replace
+  inject_mode: prepend
+  
+  # Persistence settings
+  persistence:
+    # Scope: "session" (shared across all users) or "user" (per-user personas)
+    scope: session
+    
+    # Database path for storing persona state
+    db_path: ./persona_state.db
+    
+    # Random seed for deterministic testing (null for random)
+    # Set to an integer for reproducible personality drift
+    seed: null
+
+# ========================================
+# OTHER SETTINGS (standard configuration)
+# ========================================
+
+comment:
+  enabled: 1
+  global_cooldown: 6
+  per_user_cooldown: 15
+  min_length: 3
+  max_replies_per_min: 20
+  reply_threshold: 0.6
+  respond_to_greetings: 1
+  greeting_cooldown: 360
+  respond_to_thanks: 1
+  ignore_if_startswith: ["!"]
+  ignore_contains: ["http://", "https://", "discord.gg"]
+  keywords_bonus:
+    - why
+    - how
+    - what
+    - when
+    - where
+    - who
+  greetings:
+    - hello
+    - hi
+    - hey
+  thanks:
+    - thanks
+    - thank you
+    - thx
+
+memory:
+  enabled: 1
+  file: memory.json
+  per_user_history: 100
+  decay_days: 90
+
+microphone:
+  enabled: 1
+  device: ""
+  silence_threshold: 0.02
+  attack_ms: 120
+  release_ms: 1200
+  flush_delay_ms: 400
+
+# Additional settings...
+batch_window: 25
+like_threshold: 20
+dedupe_ttl: 600
