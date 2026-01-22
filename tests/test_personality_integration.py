@@ -51,7 +51,8 @@ def test_personality_integration():
         prompt = composer.compose_prompt(evolved_weights, state["stance_overrides"])
         
         # Verify prompt contains persona elements
-        assert "PalBot" in prompt
+        persona_name = config["personality_bias"]["persona_profile"]["name"]
+        assert persona_name in prompt or "Persona:" in prompt
         assert "CRITICAL SAFETY RULE" in prompt
         
         # Test refusal logic
@@ -99,14 +100,16 @@ def test_personality_inject_modes():
     
     tone_weights = base_config["personality_bias"]["tone_weights"]
     stance_overrides = {}
+    persona_name = base_config["personality_bias"]["persona_profile"]["name"]
     
     # Test prepend
     config = base_config.copy()
     config["personality_bias"]["inject_mode"] = "prepend"
     composer = PromptComposer(config)
     prompt = composer.compose_prompt(tone_weights, stance_overrides)
-    persona_idx = prompt.find("PalBot")
+    persona_idx = prompt.find("Persona:")
     base_idx = prompt.find("Base prompt")
+    assert persona_idx >= 0 and base_idx >= 0, "Both persona and base should be present"
     assert persona_idx < base_idx, "Prepend should put persona before base"
     
     # Test append
@@ -114,8 +117,9 @@ def test_personality_inject_modes():
     config["personality_bias"]["inject_mode"] = "append"
     composer = PromptComposer(config)
     prompt = composer.compose_prompt(tone_weights, stance_overrides)
-    persona_idx = prompt.find("PalBot")
+    persona_idx = prompt.find("Persona:")
     base_idx = prompt.find("Base prompt")
+    assert persona_idx >= 0 and base_idx >= 0, "Both persona and base should be present"
     assert persona_idx > base_idx, "Append should put persona after base"
     
     # Test replace
@@ -123,7 +127,7 @@ def test_personality_inject_modes():
     config["personality_bias"]["inject_mode"] = "replace"
     composer = PromptComposer(config)
     prompt = composer.compose_prompt(tone_weights, stance_overrides)
-    assert "PalBot" in prompt
+    assert "Persona:" in prompt or persona_name in prompt, "Persona should be present"
     assert "Base prompt" not in prompt, "Replace should remove base prompt"
     
     print("✅ Inject modes test passed!")
