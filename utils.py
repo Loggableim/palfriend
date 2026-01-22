@@ -21,7 +21,7 @@ def trim_text(text: str, max_length: int) -> str:
     text = text.strip()
     if len(text) <= max_length:
         return text
-    return text[: max_length - 1] + "…"
+    return text[:max_length - 1] + "…"
 
 
 class TokenBucket:

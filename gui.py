@@ -182,7 +182,7 @@ class ConfigGUI(tk.Tk):
             self.input_devs = [
                 f"{i}: {d['name']}"
                 for i, d in enumerate(devices)
-                if int(d.get('max_input_channels', 0)) > 0
+                if (d.get('max_input_channels') or 0) > 0
             ]
         except Exception:
             self.input_devs = []

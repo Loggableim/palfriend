@@ -153,15 +153,16 @@ def remember_event(
     if message:
         try:
             u["messages"].append(message)
-        except Exception:
+        except (AttributeError, KeyError):
+            # Initialize as deque if doesn't exist or wrong type
             u["messages"] = deque([message], maxlen=mem_cfg.get("per_user_history", 10))
     if background:
         u["background"].update(background)
     
     try:
         save_memory(memory, mem_cfg.get("file", "memory.json"))
-    except Exception:
-        pass
+    except (IOError, OSError) as e:
+        log.error(f"Failed to save memory: {e}")
 
 
 def get_background_info(memory: Dict[str, Any], uid: str) -> str:

@@ -22,8 +22,8 @@ class OutboxBatcher:
         max_chars: int,
         sep: str,
         send_callback: Callable,
-        speech_state,
-        mic_state
+        speech_state: 'SpeechState',
+        mic_state: 'MicState'
     ) -> None:
         """
         Initialize outbox batcher.

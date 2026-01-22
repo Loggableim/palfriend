@@ -32,6 +32,11 @@ from outbox import OutboxBatcher
 from events import EventDeduper, make_signature, touch_viewer, schedule_greeting
 from gui import ConfigGUI
 
+# Constants
+MAX_REPLY_THRESHOLD = 0.8
+DEFAULT_REPLY_THRESHOLD = 0.4
+ANIMAZE_RECONNECT_DELAY = 0.8
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 log = logging.getLogger("ChatPalBrain")
 
@@ -224,9 +229,9 @@ async def process_comments(
     reply_threshold = float(comment_cfg.get("reply_threshold", 0.6))
     
     # Guard against excessively high thresholds
-    if reply_threshold > 0.8:
-        log.info(f"reply_threshold {reply_threshold} zu hoch, setze auf 0.4")
-        reply_threshold = 0.4
+    if reply_threshold > MAX_REPLY_THRESHOLD:
+        log.info(f"reply_threshold {reply_threshold} zu hoch, setze auf {DEFAULT_REPLY_THRESHOLD}")
+        reply_threshold = DEFAULT_REPLY_THRESHOLD
     
     resp_greet = bool(int(comment_cfg.get("respond_to_greetings", 1)))
     greet_cd = int(comment_cfg.get("greeting_cooldown", 360))

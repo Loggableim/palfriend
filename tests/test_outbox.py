@@ -1,103 +1,143 @@
 """
 Tests for Phase 6: Message Batching (outbox.py)
 """
-import time
+import asyncio
+import pytest
+from speech import SpeechState, MicState
 from outbox import OutboxBatcher
 
 
-def test_outbox_add_and_flush():
-    """Test basic add and flush operations."""
-    batcher = OutboxBatcher(batch_window=10)
+@pytest.fixture
+def mock_send_callback():
+    """Mock send callback that stores sent messages."""
+    sent_messages = []
     
-    batcher.add("Message 1")
-    batcher.add("Message 2")
+    async def callback(text):
+        sent_messages.append(text)
     
-    batch = batcher.flush()
-    
-    assert len(batch) == 2
-    assert "Message 1" in batch
-    assert "Message 2" in batch
+    callback.sent_messages = sent_messages
+    return callback
 
 
-def test_outbox_priority():
-    """Test that high priority messages come first."""
-    batcher = OutboxBatcher(batch_window=10)
-    
-    batcher.add("Normal", priority=False)
-    batcher.add("Important", priority=True)
-    batcher.add("Another normal", priority=False)
-    
-    batch = batcher.flush()
-    
-    # High priority should be first
-    assert batch[0] == "Important"
+@pytest.fixture
+def mock_states():
+    """Create mock speech and mic states."""
+    speech_state = SpeechState.IDLE
+    mic_state = MicState()
+    return speech_state, mic_state
 
 
-def test_outbox_deduplication():
-    """Test that duplicate messages are removed."""
-    batcher = OutboxBatcher(batch_window=10)
+@pytest.mark.asyncio
+async def test_outbox_initialization(mock_send_callback, mock_states):
+    """Test basic outbox initialization."""
+    speech_state, mic_state = mock_states
     
-    batcher.add("Hello")
-    batcher.add("Hello")  # Duplicate
-    batcher.add("World")
+    batcher = OutboxBatcher(
+        window_s=10,
+        max_items=10,
+        max_chars=1000,
+        sep=" ",
+        send_callback=mock_send_callback,
+        speech_state=speech_state,
+        mic_state=mic_state
+    )
     
-    batch = batcher.flush()
-    
-    # Should only have 2 unique messages
-    assert len(batch) == 2
-    assert "Hello" in batch
-    assert "World" in batch
+    assert batcher.window_s == 10
+    assert batcher.max_items == 10
+    assert batcher.max_chars == 1000
+    assert len(batcher.buffer) == 0
 
 
-def test_outbox_max_batch_size():
-    """Test that batch size is limited."""
-    batcher = OutboxBatcher(batch_window=10)
+@pytest.mark.asyncio
+async def test_outbox_add_message(mock_send_callback, mock_states):
+    """Test adding messages to outbox."""
+    speech_state, mic_state = mock_states
     
-    # Add more than max batch size (10)
-    for i in range(15):
-        batcher.add(f"Message {i}")
+    batcher = OutboxBatcher(
+        window_s=10,
+        max_items=10,
+        max_chars=1000,
+        sep=" ",
+        send_callback=mock_send_callback,
+        speech_state=speech_state,
+        mic_state=mic_state
+    )
     
-    batch = batcher.flush()
+    await batcher.add("Test message", priority=1)
     
-    # Should be limited to 10
-    assert len(batch) <= 10
+    assert len(batcher.buffer) == 1
+    assert batcher.buffer[0][1] == "Test message"
 
 
-def test_outbox_empty_flush():
-    """Test that flushing empty batcher returns empty list."""
-    batcher = OutboxBatcher(batch_window=10)
+@pytest.mark.asyncio
+async def test_outbox_priority_ordering(mock_send_callback, mock_states):
+    """Test that messages are ordered by priority."""
+    speech_state, mic_state = mock_states
     
-    batch = batcher.flush()
+    batcher = OutboxBatcher(
+        window_s=10,
+        max_items=10,
+        max_chars=1000,
+        sep=" ",
+        send_callback=mock_send_callback,
+        speech_state=speech_state,
+        mic_state=mic_state
+    )
     
-    assert batch == []
+    await batcher.add("Normal", priority=1)
+    await batcher.add("Important", priority=5)
+    await batcher.add("Low", priority=0)
+    
+    # Buffer should be sorted by priority (high to low)
+    assert batcher.buffer[0][1] == "Important"
+    assert batcher.buffer[1][1] == "Normal"
+    assert batcher.buffer[2][1] == "Low"
 
 
-def test_outbox_size():
-    """Test size tracking."""
-    batcher = OutboxBatcher(batch_window=10)
+@pytest.mark.asyncio
+async def test_outbox_max_items_flush(mock_send_callback, mock_states):
+    """Test that batch flushes when max items reached."""
+    speech_state, mic_state = mock_states
     
-    assert batcher.size() == 0
+    batcher = OutboxBatcher(
+        window_s=10,
+        max_items=3,
+        max_chars=1000,
+        sep=" ",
+        send_callback=mock_send_callback,
+        speech_state=speech_state,
+        mic_state=mic_state
+    )
     
-    batcher.add("Message 1")
-    assert batcher.size() == 1
+    # Add messages up to max
+    await batcher.add("Message 1", priority=1)
+    await batcher.add("Message 2", priority=1)
+    await batcher.add("Message 3", priority=1)
     
-    batcher.add("Message 2", priority=True)
-    assert batcher.size() == 2
-    
-    batcher.flush()
-    assert batcher.size() == 0
+    # Should have flushed
+    assert len(batcher.buffer) == 0
+    assert len(mock_send_callback.sent_messages) == 1
+    assert "Message 1" in mock_send_callback.sent_messages[0]
 
 
-def test_outbox_clears_after_flush():
-    """Test that batcher is empty after flush."""
-    batcher = OutboxBatcher(batch_window=10)
+@pytest.mark.asyncio
+async def test_outbox_empty_text_ignored(mock_send_callback, mock_states):
+    """Test that empty text is ignored."""
+    speech_state, mic_state = mock_states
     
-    batcher.add("Message 1")
-    batcher.add("Message 2")
+    batcher = OutboxBatcher(
+        window_s=10,
+        max_items=10,
+        max_chars=1000,
+        sep=" ",
+        send_callback=mock_send_callback,
+        speech_state=speech_state,
+        mic_state=mic_state
+    )
     
-    batch1 = batcher.flush()
-    assert len(batch1) == 2
+    await batcher.add("", priority=1)
+    await batcher.add("   ", priority=1)
     
-    # Second flush should be empty
-    batch2 = batcher.flush()
-    assert len(batch2) == 0
+    # Empty/whitespace messages should be ignored
+    # Note: strip() in add() will make whitespace empty
+    assert len(batcher.buffer) == 0
