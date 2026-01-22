@@ -196,6 +196,8 @@ Real-time events pushed to clients:
 ### Frontend
 - React 18.2+ - UI framework
 - Material UI 5.14+ - Component library
+- **Tailwind CSS 4.x** - Utility-first CSS framework
+- **DaisyUI 5.x** - Tailwind CSS component library with theming
 - Vite 5.0+ - Build tool and dev server
 - React Router 6.20+ - Routing
 - Socket.io Client 4.5+ - WebSocket client
@@ -204,6 +206,72 @@ Real-time events pushed to clients:
 - Recharts 2.10+ - Charts
 - React Dropzone 14.2+ - File upload
 - Axios 1.6+ - HTTP client
+
+## DaisyUI Integration
+
+The frontend includes [DaisyUI](https://daisyui.com/), a Tailwind CSS component library that provides:
+
+- Pre-built component classes (buttons, cards, modals, etc.)
+- Theme system with multiple built-in themes
+- Custom theme support
+- Responsive design utilities
+
+### Available Themes
+
+The following themes are configured:
+- **light** (default)
+- **dark** (activated automatically based on system preference)
+- **cupcake** (light pastel theme)
+- **palfriend** (custom brand theme)
+
+### Using DaisyUI Components
+
+DaisyUI components can be used alongside Material UI. Example:
+
+```jsx
+// DaisyUI button
+<button className="btn btn-primary">Click Me</button>
+
+// DaisyUI card
+<div className="card bg-base-100 shadow-xl">
+  <div className="card-body">
+    <h2 className="card-title">Card Title</h2>
+    <p>Card content here</p>
+  </div>
+</div>
+```
+
+### Theme Switching
+
+To switch themes, add the `data-theme` attribute to the `html` element:
+
+```javascript
+// Switch to dark theme
+document.documentElement.setAttribute('data-theme', 'dark');
+
+// Switch to custom palfriend theme
+document.documentElement.setAttribute('data-theme', 'palfriend');
+```
+
+### Custom Theme Configuration
+
+The custom `palfriend` theme is defined in `frontend/src/styles/index.css` using the DaisyUI v5 plugin syntax:
+
+```css
+@plugin "daisyui/theme" {
+  name: "palfriend";
+  --color-primary: #1976d2;
+  --color-secondary: #dc004e;
+  /* ... more color tokens */
+}
+```
+
+### DaisyUI Component Reference
+
+For a full list of available components and their classes, see:
+- [DaisyUI Components](https://daisyui.com/components/)
+- [DaisyUI Themes](https://daisyui.com/docs/themes/)
+- [DaisyUI Customization](https://daisyui.com/docs/config/)
 
 ## Browser Support
 

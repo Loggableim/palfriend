@@ -1,3 +1,48 @@
+/* Tailwind CSS v4 with DaisyUI v5 */
+@import "tailwindcss";
+
+/* DaisyUI Theme Configuration - Enable built-in and custom themes */
+@plugin "daisyui" {
+  themes: light --default, dark --prefersdark, cupcake, palfriend;
+}
+
+/* Custom PalFriend Theme */
+@plugin "daisyui/theme" {
+  name: "palfriend";
+  default: false;
+  prefersdark: false;
+  color-scheme: light;
+  --color-primary: #1976d2;
+  --color-primary-content: #ffffff;
+  --color-secondary: #dc004e;
+  --color-secondary-content: #ffffff;
+  --color-accent: #00bcd4;
+  --color-accent-content: #000000;
+  --color-neutral: #3d4451;
+  --color-neutral-content: #ffffff;
+  --color-base-100: #f5f5f5;
+  --color-base-200: #e8e8e8;
+  --color-base-300: #d6d6d6;
+  --color-base-content: #1f2937;
+  --color-info: #3abff8;
+  --color-info-content: #002b3d;
+  --color-success: #36d399;
+  --color-success-content: #003320;
+  --color-warning: #fbbd23;
+  --color-warning-content: #382800;
+  --color-error: #f87272;
+  --color-error-content: #470000;
+  --radius-selector: 0.5rem;
+  --radius-field: 0.5rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+}
+
+/* Custom styling that integrates with existing MUI setup */
 * {
   margin: 0;
   padding: 0;
