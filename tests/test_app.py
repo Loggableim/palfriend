@@ -86,3 +86,30 @@ def test_nonexistent_static_file_serves_index(client):
     response = client.get('/nonexistent.js')
     assert response.status_code == 200
     assert b'Test SPA' in response.data
+
+
+def test_nested_paths_serve_index(client):
+    """Test that nested paths (without api/ or socket.io/ prefix) serve index.html."""
+    response = client.get('/dashboard/settings')
+    assert response.status_code == 200
+    assert b'Test SPA' in response.data
+    
+    response = client.get('/user/123/profile')
+    assert response.status_code == 200
+    assert b'Test SPA' in response.data
+
+
+def test_paths_with_api_in_middle_serve_index(client):
+    """Test that paths with 'api' not at the start serve index.html.
+    
+    This addresses the CodeQL concern about substring checking.
+    Paths like '/something/api/test' should serve index.html, not return 404,
+    because they don't start with 'api/' and are legitimate SPA routes.
+    """
+    response = client.get('/something/api/test')
+    assert response.status_code == 200
+    assert b'Test SPA' in response.data
+    
+    response = client.get('/user/socket.io/data')
+    assert response.status_code == 200
+    assert b'Test SPA' in response.data

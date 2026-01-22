@@ -81,7 +81,10 @@ logging.getLogger().addHandler(ws_handler)
 @app.route('/<path:path>')
 def serve(path):
     """Serve React frontend for all non-API routes (SPA support)."""
-    # API routes should not be caught here
+    # Security note: We check if path STARTS with 'api/' or 'socket.io/'
+    # This is intentional - paths like '/user/api/data' are valid SPA routes.
+    # Actual API routes (e.g., /api/settings) have explicit Flask route handlers
+    # that take precedence over this catch-all route.
     if path.startswith('api/') or path.startswith('socket.io/'):
         return jsonify({'error': 'Not found'}), 404
     
