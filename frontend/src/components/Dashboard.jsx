@@ -6,27 +6,20 @@ import {
   Typography,
   Box,
   Button,
-  LinearProgress,
-  Chip,
-  Paper
 } from '@mui/material';
 import {
   PlayArrow as StartIcon,
   Stop as StopIcon,
-  CheckCircle as ConnectedIcon,
-  Cancel as DisconnectedIcon,
   People as PeopleIcon,
   Comment as CommentIcon,
   CardGiftcard as GiftIcon,
   PersonAdd as FollowIcon,
-  Mic as MicIcon
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { startApp, stopApp, getStatus, getMemory } from '../utils/api';
 import socketService from '../utils/socket';
+import { StatusChip, StatCard, ConnectionStatus, VUMeter } from './ui';
 
 function Dashboard() {
   const { t } = useTranslation();
@@ -123,47 +116,6 @@ function Dashboard() {
     }
   };
 
-  const ConnectionStatus = ({ service, connected }) => (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-      <motion.div
-        animate={{ scale: connected ? [1, 1.2, 1] : 1 }}
-        transition={{ repeat: connected ? Infinity : 0, duration: 2 }}
-      >
-        {connected ? (
-          <ConnectedIcon color="success" />
-        ) : (
-          <DisconnectedIcon color="error" />
-        )}
-      </motion.div>
-      <Typography variant="body1">
-        {t(service)}: <strong>{t(connected ? 'connected' : 'disconnected')}</strong>
-      </Typography>
-    </Box>
-  );
-
-  const StatCard = ({ icon: Icon, label, value, color }) => (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box>
-              <Typography color="text.secondary" gutterBottom>
-                {label}
-              </Typography>
-              <Typography variant="h4" component="div">
-                {value}
-              </Typography>
-            </Box>
-            <Icon sx={{ fontSize: 48, color }} />
-          </Box>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-
   return (
     <Grid container spacing={3}>
       {/* Control Panel */}
@@ -175,10 +127,9 @@ function Dashboard() {
                 <Typography variant="h5" gutterBottom>
                   {t('status')}
                 </Typography>
-                <Chip
+                <StatusChip 
+                  status={status.running ? 'running' : 'stopped'} 
                   label={t(status.running ? 'running' : 'stopped')}
-                  color={status.running ? 'success' : 'default'}
-                  sx={{ fontWeight: 'bold' }}
                 />
               </Box>
               <Box sx={{ display: 'flex', gap: 2 }}>
@@ -226,46 +177,11 @@ function Dashboard() {
       <Grid item xs={12} md={6}>
         <Card>
           <CardContent>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <MicIcon />
-              <Typography variant="h6">{t('mic_level')}</Typography>
-            </Box>
-            <LinearProgress
-              variant="determinate"
-              value={status.mic_level * 100}
-              sx={{
-                height: 20,
-                borderRadius: 10,
-                '& .MuiLinearProgress-bar': {
-                  backgroundColor: status.mic_level > 0.7 ? 'error.main' : 
-                                   status.mic_level > 0.4 ? 'warning.main' : 'success.main',
-                  transition: 'all 0.1s ease'
-                }
-              }}
+            <VUMeter 
+              level={status.mic_level} 
+              showChart={micHistory.length > 0}
+              chartData={micHistory}
             />
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-              {(status.mic_level * 100).toFixed(1)}%
-            </Typography>
-            
-            {micHistory.length > 0 && (
-              <Box sx={{ mt: 2, height: 100 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={micHistory.map((item, i) => ({ index: i, level: item.level * 100 }))}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="index" hide />
-                    <YAxis domain={[0, 100]} hide />
-                    <Line 
-                      type="monotone" 
-                      dataKey="level" 
-                      stroke="#1976d2" 
-                      strokeWidth={2}
-                      dot={false}
-                      isAnimationActive={false}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            )}
           </CardContent>
         </Card>
       </Grid>

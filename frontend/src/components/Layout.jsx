@@ -10,8 +10,6 @@ import {
   Container,
   Menu,
   MenuItem,
-  Switch,
-  FormControlLabel,
   Tooltip
 } from '@mui/material';
 import {

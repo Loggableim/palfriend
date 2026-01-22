@@ -1,5 +1,58 @@
 # UI Design Overview
 
+## Design System Architecture
+
+The PalFriend web interface uses a structured design system built on Material UI (MUI) with centralized theme configuration.
+
+### 📁 Theme Structure
+
+```
+frontend/src/
+├── theme/
+│   ├── index.js      # Main theme configuration & exports
+│   ├── colors.js     # Color palette & CSS variables
+│   ├── typography.js # Typography scale & fonts
+│   └── spacing.js    # Spacing, shadows, breakpoints
+└── components/
+    └── ui/           # Reusable UI components
+        ├── index.js           # Component exports
+        ├── StatusChip.jsx     # Status indicators
+        ├── StatCard.jsx       # Statistics cards
+        ├── ConnectionStatus.jsx # Connection indicators
+        └── VUMeter.jsx        # Audio level meter
+```
+
+### 🎨 Color System
+
+#### Primary Colors
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `primary.main` | #1976d2 | Primary buttons, links |
+| `primary.light` | #42a5f5 | Hover states |
+| `primary.dark` | #1565c0 | Active states |
+
+#### Secondary Colors
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `secondary.main` | #dc004e | Accent elements |
+| `secondary.light` | #ff4081 | Hover states |
+| `secondary.dark` | #c51162 | Active states |
+
+#### Semantic Colors
+| Token | Hex | Usage |
+|-------|-----|-------|
+| `success.main` | #2e7d32 | Success states, online |
+| `error.main` | #d32f2f | Errors, offline |
+| `warning.main` | #ed6c02 | Warnings |
+| `info.main` | #0288d1 | Information |
+
+#### VU Meter Colors
+| Token | Hex | Level |
+|-------|-----|-------|
+| `vuMeter.low` | #4caf50 | 0-40% |
+| `vuMeter.medium` | #ff9800 | 40-70% |
+| `vuMeter.high` | #f44336 | 70-100% |
+
 ## Modern Web Interface Features
 
 The new PalFriend web interface features a complete redesign with modern UX principles:
@@ -298,3 +351,104 @@ All icons from Material UI Icons:
 - And many more...
 
 All SVG-based for crisp rendering at any resolution.
+
+## 🧩 Reusable UI Components
+
+### StatusChip
+
+Displays status information with color-coded chips.
+
+```jsx
+import { StatusChip } from './components/ui';
+
+// Usage
+<StatusChip status="online" label="Connected" />
+<StatusChip status="running" label="Running" />
+<StatusChip status="error" label="Error" />
+```
+
+Available statuses: `online`, `offline`, `connecting`, `idle`, `running`, `stopped`, `error`, `warning`, `info`, `success`
+
+### StatCard
+
+Displays a statistic with an icon in a card format with hover animation.
+
+```jsx
+import { StatCard } from './components/ui';
+import { People as PeopleIcon } from '@mui/icons-material';
+
+// Usage
+<StatCard
+  icon={PeopleIcon}
+  label="Viewers"
+  value={142}
+  color="primary.main"
+/>
+```
+
+### ConnectionStatus
+
+Displays connection status with animated indicator.
+
+```jsx
+import { ConnectionStatus } from './components/ui';
+
+// Usage
+<ConnectionStatus service="tiktok" connected={true} />
+<ConnectionStatus service="animaze" connected={false} />
+```
+
+### VUMeter
+
+Displays audio level with color-coded progress bar and optional chart.
+
+```jsx
+import { VUMeter } from './components/ui';
+
+// Usage
+<VUMeter 
+  level={0.5}  // 0-1 range
+  showChart={true}
+  chartData={micHistory}  // Array of {time, level}
+/>
+```
+
+## 🎨 Using Theme Tokens
+
+### In Components
+
+```jsx
+import { colors, typography, spacing } from '../theme';
+
+// Use colors
+const buttonStyle = { backgroundColor: colors.primary.main };
+
+// Use spacing
+const cardStyle = { padding: spacing[3] }; // 24px
+```
+
+### Creating Custom Theme
+
+```jsx
+import { createPalFriendTheme } from '../theme';
+
+// Create theme with dark mode
+const darkTheme = createPalFriendTheme(true);
+
+// Create theme with light mode
+const lightTheme = createPalFriendTheme(false);
+```
+
+## 🔄 CSS Variables
+
+All theme tokens are also available as CSS variables in `styles/index.css`:
+
+```css
+.my-component {
+  color: var(--color-primary);
+  font-family: var(--font-family-primary);
+  padding: var(--spacing-unit);
+  border-radius: var(--border-radius-md);
+  transition: all var(--transition-normal);
+}
+```

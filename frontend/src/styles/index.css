@@ -1,3 +1,55 @@
+/**
+ * Global CSS styles for PalFriend
+ * Includes CSS variables for theming
+ */
+
+/* CSS Variables for dynamic theming */
+:root {
+  /* Primary colors */
+  --color-primary: #1976d2;
+  --color-primary-light: #42a5f5;
+  --color-primary-dark: #1565c0;
+  
+  /* Secondary colors */
+  --color-secondary: #dc004e;
+  --color-secondary-light: #ff4081;
+  --color-secondary-dark: #c51162;
+  
+  /* Semantic colors */
+  --color-success: #2e7d32;
+  --color-error: #d32f2f;
+  --color-warning: #ed6c02;
+  --color-info: #0288d1;
+  
+  /* VU meter colors */
+  --color-vu-low: #4caf50;
+  --color-vu-medium: #ff9800;
+  --color-vu-high: #f44336;
+  
+  /* Status colors */
+  --color-status-online: #4caf50;
+  --color-status-offline: #f44336;
+  --color-status-connecting: #ff9800;
+  
+  /* Typography */
+  --font-family-primary: 'Roboto', 'Segoe UI', 'Arial', sans-serif;
+  --font-family-mono: 'Roboto Mono', 'Courier New', monospace;
+  
+  /* Spacing base unit */
+  --spacing-unit: 8px;
+  
+  /* Border radius */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-full: 9999px;
+  
+  /* Transitions */
+  --transition-fast: 150ms;
+  --transition-normal: 200ms;
+  --transition-slow: 300ms;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,13 +57,13 @@
 }
 
 body {
-  font-family: 'Roboto', 'Segoe UI', 'Arial', sans-serif;
+  font-family: var(--font-family-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono);
 }
 
 /* Scrollbar styling */
@@ -22,11 +74,12 @@ code {
 
 ::-webkit-scrollbar-track {
   background: #f1f1f1;
+  border-radius: var(--border-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb {
   background: #888;
-  border-radius: 5px;
+  border-radius: var(--border-radius-sm);
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -44,4 +97,21 @@ code {
 
 .dark-mode ::-webkit-scrollbar-thumb:hover {
   background: #777;
+}
+
+/* Focus visible styles for accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Selection color */
+::selection {
+  background-color: var(--color-primary-light);
+  color: white;
 }

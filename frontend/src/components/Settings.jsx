@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Grid,
   Card,
-  CardContent,
   Typography,
   TextField,
   Button,
@@ -19,9 +18,7 @@ import {
   AccordionDetails,
   Snackbar,
   Alert,
-  Tooltip,
   IconButton,
-  Divider,
   InputAdornment
 } from '@mui/material';
 import {
@@ -36,9 +33,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
-import yaml from 'js-yaml';
 
-import { getSettings, updateSettings, exportSettings, importSettings, getDevices, getDefaults } from '../utils/api';
+import { getSettings, updateSettings, exportSettings, importSettings, getDevices } from '../utils/api';
 
 function Settings() {
   const { t } = useTranslation();
@@ -133,10 +129,6 @@ function Settings() {
       ...prev,
       [section]: { ...prev[section], [key]: value }
     }));
-  };
-
-  const updateTopLevelSetting = (key, value) => {
-    setSettings(prev => ({ ...prev, [key]: value }));
   };
 
   if (!settings) {
