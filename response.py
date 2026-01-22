@@ -207,7 +207,8 @@ class ResponseEngine:
         # Construct enhanced system prompt
         enhanced_system_prompt = self.system_prompt
         if mood_modifier or friendship_level != "Stranger" or rag_context:
-            enhanced_system_prompt += f"\n\nCurrent Mood: {self.mood_manager.get_mood().value if self.mood_manager else 'neutral'}"
+            mood_value = self.mood_manager.get_mood().value if self.mood_manager else 'neutral'
+            enhanced_system_prompt += f"\n\nCurrent Mood: {mood_value}"
             enhanced_system_prompt += f"{mood_modifier}"
             enhanced_system_prompt += f"\nUser Relationship Level: {friendship_level}"
             enhanced_system_prompt += rag_context
