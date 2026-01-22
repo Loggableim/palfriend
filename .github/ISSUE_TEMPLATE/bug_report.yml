@@ -1,0 +1,105 @@
+name: 🐛 Bug Report
+description: Report a bug or issue with PalFriend
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+      
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+      
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: Tell us what you expected
+    validations:
+      required: true
+      
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Tell us what actually happened
+    validations:
+      required: true
+      
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: Please copy and paste any relevant log output
+      render: shell
+      
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: What version of PalFriend are you running?
+      options:
+        - 1.0.0 (Latest)
+        - main branch (Development)
+        - Other (specify in additional context)
+    validations:
+      required: true
+      
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Interface
+      description: Which interface are you using?
+      options:
+        - Web Interface (React)
+        - Legacy GUI (Tkinter)
+        - Command Line
+    validations:
+      required: true
+      
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: What version of Python are you running? (run `python --version`)
+      placeholder: "e.g., Python 3.12.1"
+    validations:
+      required: true
+      
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      placeholder: "e.g., Windows 11, Ubuntu 22.04, macOS 14"
+    validations:
+      required: true
+      
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: Screenshots, configuration files, etc.

@@ -1,0 +1,22 @@
+# Code owners for PalFriend repository
+# These owners will be requested for review when someone opens a pull request
+
+# Global owners (review all changes by default)
+*       @Loggableim
+
+# Backend Python code
+*.py    @Loggableim
+
+# Frontend code
+/frontend/    @Loggableim
+
+# CI/CD and workflows
+/.github/     @Loggableim
+
+# Documentation
+*.md    @Loggableim
+
+# Configuration files
+*.yml   @Loggableim
+*.yaml  @Loggableim
+*.json  @Loggableim
