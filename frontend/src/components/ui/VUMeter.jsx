@@ -7,7 +7,7 @@
  */
 
 import React from 'react';
-import { Box, Typography, LinearProgress } from '@mui/material';
+import { Box, Typography, LinearProgress, useTheme } from '@mui/material';
 import { Mic as MicIcon } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
@@ -36,9 +36,15 @@ const getVUColor = (level) => {
  */
 function VUMeter({ level = 0, showChart = false, chartData = [], label, sx = {}, ...props }) {
   const { t } = useTranslation();
+  const theme = useTheme();
   const displayLabel = label || t('mic_level');
   const percentage = Math.min(100, Math.max(0, level * 100));
   const vuColor = getVUColor(level);
+  
+  // Use theme-aware color for chart grid
+  const gridStrokeColor = theme.palette.mode === 'dark' 
+    ? 'rgba(255, 255, 255, 0.1)' 
+    : 'rgba(0, 0, 0, 0.1)';
   
   return (
     <Box sx={sx} {...props}>
@@ -79,7 +85,7 @@ function VUMeter({ level = 0, showChart = false, chartData = [], label, sx = {},
                 level: item.level * 100 
               }))}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+              <CartesianGrid strokeDasharray="3 3" stroke={gridStrokeColor} />
               <XAxis dataKey="index" hide />
               <YAxis domain={[0, 100]} hide />
               <Line

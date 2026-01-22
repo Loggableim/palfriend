@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
  * ConnectionStatus Component
  * 
  * @param {Object} props
- * @param {string} props.service - Service name (will be translated)
+ * @param {string} props.service - Service name key for translation (e.g., 'tiktok', 'animaze', 'microphone')
  * @param {boolean} props.connected - Whether the service is connected
  * @param {Object} [props.sx] - Additional MUI sx styles
  */
