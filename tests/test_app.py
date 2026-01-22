@@ -63,11 +63,19 @@ def test_api_routes_return_404(client):
     """Test that API routes that don't exist return 404."""
     response = client.get('/api/nonexistent')
     assert response.status_code == 404
-    assert b'Not found' in response.data or response.json.get('error') == 'Not found'
+    # Check if response is JSON
+    if response.content_type == 'application/json':
+        assert response.json.get('error') == 'Not found'
+    else:
+        assert b'Not found' in response.data
 
 
 def test_socketio_routes_return_404(client):
-    """Test that socket.io routes that don't exist return 404 or are handled by socket.io."""
+    """Test that socket.io routes are handled appropriately.
+    
+    Socket.IO may intercept these routes and return 400 BAD REQUEST
+    (invalid protocol), or our catch-all route may return 404.
+    """
     response = client.get('/socket.io/test')
     # socket.io may handle the route itself (returning 400) or our catch-all may return 404
     assert response.status_code in [400, 404]
