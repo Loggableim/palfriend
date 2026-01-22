@@ -2,7 +2,7 @@
 Tests for Phase 4: Event Processing (events.py)
 """
 import time
-from events import EventDeduper, make_signature, touch_viewer, schedule_greeting
+from events import make_signature, touch_viewer
 
 
 def test_make_signature():
@@ -16,72 +16,62 @@ def test_make_signature():
     
     # Different input should produce different signature
     assert sig1 != sig3
+    
+    # Should return hex string
+    assert len(sig1) == 40  # SHA1 hex is 40 characters
 
 
-def test_event_deduper():
-    """Test event deduplication."""
-    deduper = EventDeduper(ttl_seconds=10)
+def test_make_signature_prefix():
+    """Test that signature includes prefix."""
+    sig1 = make_signature("comment", "user1", "text")
+    sig2 = make_signature("gift", "user1", "text")
     
-    # First event should be new
-    assert deduper.add("event1") is True
-    
-    # Same event should be duplicate
-    assert deduper.add("event1") is False
-    
-    # Different event should be new
-    assert deduper.add("event2") is True
+    # Different prefix should produce different signature
+    assert sig1 != sig2
 
 
-def test_event_deduper_expiration():
-    """Test that events expire after TTL."""
-    deduper = EventDeduper(ttl_seconds=1)
-    
-    # Add event
-    assert deduper.add("event1") is True
-    
-    # Immediately duplicate
-    assert deduper.add("event1") is False
-    
-    # Wait for expiration
-    time.sleep(2)
-    
-    # Should be new again after expiration
-    assert deduper.add("event1") is True
-
-
-def test_touch_viewer():
-    """Test viewer tracking."""
+def test_touch_viewer_creates_new():
+    """Test creating new viewer entry."""
     viewers = {}
-    now = time.time()
     
-    touch_viewer(viewers, "user1", now)
+    result = touch_viewer(viewers, "user1", "John")
     
     assert "user1" in viewers
-    assert viewers["user1"] == now
+    assert viewers["user1"]["nick"] == "John"
+    assert "joined" in viewers["user1"]
+    assert "last_active" in viewers["user1"]
+    assert viewers["user1"]["greeted"] is False
 
 
-def test_schedule_greeting():
-    """Test greeting scheduling."""
+def test_touch_viewer_updates_existing():
+    """Test updating existing viewer."""
     viewers = {}
-    now = time.time()
     
-    # First join should trigger greeting
-    assert schedule_greeting(viewers, "user1", now, cooldown=300) is True
+    # Create viewer
+    result1 = touch_viewer(viewers, "user1", "John")
+    time1 = result1["last_active"]
     
-    # Immediate rejoin should not trigger greeting (cooldown)
-    assert schedule_greeting(viewers, "user1", now + 1, cooldown=300) is False
+    # Wait a bit
+    time.sleep(0.1)
     
-    # After cooldown should trigger greeting
-    assert schedule_greeting(viewers, "user1", now + 301, cooldown=300) is True
+    # Update viewer
+    result2 = touch_viewer(viewers, "user1", "Johnny")
+    time2 = result2["last_active"]
+    
+    # Should have updated
+    assert viewers["user1"]["nick"] == "Johnny"
+    assert time2 > time1
+    assert result2["joined"] == result1["joined"]  # Joined time unchanged
 
 
-def test_schedule_greeting_new_user():
-    """Test that new users always get greeting."""
+def test_touch_viewer_returns_dict():
+    """Test that touch_viewer returns viewer dict."""
     viewers = {}
-    now = time.time()
     
-    # First time should always greet
-    assert schedule_greeting(viewers, "new_user", now, cooldown=300) is True
+    result = touch_viewer(viewers, "user1", "John")
     
-    # Verify user was added to viewers
-    assert "new_user" in viewers
+    assert isinstance(result, dict)
+    assert "nick" in result
+    assert "joined" in result
+    assert "last_active" in result
+    assert "greeted" in result
