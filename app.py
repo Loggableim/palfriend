@@ -22,7 +22,7 @@ from memory import load_memory
 log = logging.getLogger("ChatPalBrain")
 
 # Flask app setup
-app = Flask(__name__, static_folder='frontend/build', static_url_path='')
+app = Flask(__name__, static_folder='frontend/build', static_url_path=None)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
@@ -77,9 +77,24 @@ logging.getLogger().addHandler(ws_handler)
 
 # API Routes
 
-@app.route('/')
-def index():
-    """Serve React frontend."""
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    """Serve React frontend for all non-API routes (SPA support)."""
+    # Security note: We check if path STARTS with 'api/' or 'socket.io/'
+    # This is intentional - paths like '/user/api/data' are valid SPA routes.
+    # Actual API routes (e.g., /api/settings) have explicit Flask route handlers
+    # that take precedence over this catch-all route.
+    if path.startswith('api/') or path.startswith('socket.io/'):
+        return jsonify({'error': 'Not found'}), 404
+    
+    # Serve static files directly if they exist
+    if path and app.static_folder:
+        file_path = os.path.join(app.static_folder, path)
+        if os.path.isfile(file_path):
+            return send_from_directory(app.static_folder, path)
+    
+    # Everything else -> index.html (React Router handles it)
     return send_from_directory(app.static_folder, 'index.html')
 
 
