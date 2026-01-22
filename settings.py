@@ -61,7 +61,58 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     },
     "outbox": {"window_seconds": 8, "max_items": 8, "max_chars": 320, "separator": " • "},
     "speech": {"wait_start_timeout_ms": 1200, "max_speech_ms": 15000, "post_gap_ms": 250},
-    "event_priority": {"gift": 3, "follow": 2, "subscribe": 3, "share": 2, "like": 1, "join": 1}
+    "event_priority": {"gift": 3, "follow": 2, "subscribe": 3, "share": 2, "like": 1, "join": 1},
+    "personality_bias": {
+        "enabled": 0,
+        "persona_profile": {
+            "name": "PalBot",
+            "backstory": "A friendly AI assistant who enjoys helping users.",
+            "key_traits": ["helpful", "friendly", "concise"]
+        },
+        "tone_weights": {
+            "formal": 0.3,
+            "casual": 0.5,
+            "playful": 0.15,
+            "sarcastic": 0.05
+        },
+        "stance_overrides": {},
+        "volatility": 0.01,
+        "evolution_rules": {
+            "enabled": 1,
+            "triggers": {
+                "positive_interaction": {"magnitude": 0.02, "target_tone": "playful"},
+                "negative_interaction": {"magnitude": 0.03, "target_tone": "formal"},
+                "spam_detected": {"magnitude": 0.05, "target_tone": "sarcastic"}
+            },
+            "clamps": {
+                "formal": [0.1, 0.8],
+                "casual": [0.1, 0.8],
+                "playful": [0.0, 0.5],
+                "sarcastic": [0.0, 0.3]
+            }
+        },
+        "refusals": {
+            "enabled": 1,
+            "patterns": [
+                {"trigger": ["spam", "offensive"], "mode": "brief_and_cold"},
+                {"trigger": ["inappropriate"], "mode": "polite_decline"}
+            ],
+            "modes": {
+                "brief_and_cold": "I'd rather not respond to that.",
+                "polite_decline": "I appreciate your message, but I prefer not to engage with that topic."
+            }
+        },
+        "safety_overrides": {
+            "forbidden_topics": ["violence", "hate_speech", "illegal_activity"],
+            "always_refuse": 1
+        },
+        "inject_mode": "prepend",
+        "persistence": {
+            "scope": "session",
+            "db_path": "./persona_state.db",
+            "seed": None
+        }
+    }
 }
 
 

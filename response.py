@@ -11,9 +11,6 @@ from typing import Dict, Any, Optional
 import openai
 
 from memory import get_background_info
-from modules.rag import RAGEngine
-from modules.mood import MoodManager, Mood
-from modules.relationships import RelationshipManager
 
 log = logging.getLogger("ChatPalBrain")
 
@@ -136,6 +133,10 @@ class ResponseEngine:
         
         # Initialize new features
         try:
+            from modules.rag import RAGEngine
+            from modules.mood import MoodManager, Mood
+            from modules.relationships import RelationshipManager
+            
             self.rag_engine = RAGEngine(persist_directory="./chroma_db")
             self.mood_manager = MoodManager(initial_mood=Mood.NEUTRAL)
             self.relationship_manager = RelationshipManager(db_path="./relationships.db")
@@ -145,6 +146,26 @@ class ResponseEngine:
             self.rag_engine = None
             self.mood_manager = None
             self.relationship_manager = None
+        
+        # Initialize personality system
+        try:
+            from modules.persona_state import PersonaStateStore
+            from modules.prompt_composer import PromptComposer
+            
+            personality_config = cfg.get("personality_bias", {})
+            if personality_config.get("enabled", 0):
+                db_path = personality_config.get("persistence", {}).get("db_path", "./persona_state.db")
+                self.persona_store = PersonaStateStore(personality_config, db_path)
+                self.prompt_composer = PromptComposer(cfg)
+                log.info("Personality system initialized")
+            else:
+                self.persona_store = None
+                self.prompt_composer = None
+                log.info("Personality system disabled")
+        except Exception as e:
+            log.warning(f"Failed to initialize personality system: {e}. Continuing without it.")
+            self.persona_store = None
+            self.prompt_composer = None
     
     def _make_cache_key(self, nick: str, text: str, uid: str) -> tuple:
         """
@@ -172,6 +193,13 @@ class ResponseEngine:
         Returns:
             Generated reply text or None if failed
         """
+        # Check for refusal first (personality-based)
+        if self.prompt_composer:
+            refusal = self.prompt_composer.check_refusal(text)
+            if refusal:
+                log.info(f"Refusal triggered for user {uid}")
+                return refusal
+        
         user_history = "\n".join(self.memory["users"].get(uid, {}).get("messages", []))
         bg_info = get_background_info(self.memory, uid)
         
@@ -204,14 +232,39 @@ class ResponseEngine:
             except Exception as e:
                 log.warning(f"Failed to get mood modifier: {e}")
         
-        # Construct enhanced system prompt
-        enhanced_system_prompt = self.system_prompt
-        if mood_modifier or friendship_level != "Stranger" or rag_context:
-            mood_value = self.mood_manager.get_mood().value if self.mood_manager else 'neutral'
-            enhanced_system_prompt += f"\n\nCurrent Mood: {mood_value}"
-            enhanced_system_prompt += f"{mood_modifier}"
-            enhanced_system_prompt += f"\nUser Relationship Level: {friendship_level}"
-            enhanced_system_prompt += rag_context
+        # Build system prompt with personality if enabled
+        if self.persona_store and self.prompt_composer:
+            try:
+                # Get current persona state
+                scope_id = uid if self.persona_store.scope == "user" else "session"
+                state = self.persona_store.get_state(scope_id)
+                tone_weights = state["tone_weights"]
+                stance_overrides = state["stance_overrides"]
+                
+                # Apply volatility drift
+                volatility = self.cfg.get("personality_bias", {}).get("volatility", 0.01)
+                tone_weights = self.persona_store.apply_drift(tone_weights, volatility)
+                
+                # Compose system prompt with personality
+                enhanced_system_prompt = self.prompt_composer.compose_prompt(
+                    tone_weights, stance_overrides, 
+                    context={"mood": mood_modifier, "friendship": friendship_level, "rag": rag_context}
+                )
+                
+                # Save updated state
+                self.persona_store.save_state(scope_id, tone_weights, stance_overrides)
+            except Exception as e:
+                log.warning(f"Failed to apply personality: {e}. Using default prompt.")
+                enhanced_system_prompt = self.system_prompt
+        else:
+            # Construct enhanced system prompt without personality (legacy behavior)
+            enhanced_system_prompt = self.system_prompt
+            if mood_modifier or friendship_level != "Stranger" or rag_context:
+                mood_value = self.mood_manager.get_mood().value if self.mood_manager else 'neutral'
+                enhanced_system_prompt += f"\n\nCurrent Mood: {mood_value}"
+                enhanced_system_prompt += f"{mood_modifier}"
+                enhanced_system_prompt += f"\nUser Relationship Level: {friendship_level}"
+                enhanced_system_prompt += rag_context
         
         prompt = f"User: {nick}\nBackground: {bg_info}\nChat history:\n{user_history}\nCurrent comment: {text}"
         
@@ -264,6 +317,21 @@ class ResponseEngine:
                 except Exception as e:
                     log.warning(f"Failed to update mood: {e}")
             
+            # Update persona evolution based on interaction
+            if self.persona_store and self.prompt_composer:
+                try:
+                    scope_id = uid if self.persona_store.scope == "user" else "session"
+                    state = self.persona_store.get_state(scope_id)
+                    tone_weights = state["tone_weights"]
+                    
+                    # Trigger evolution based on interaction type
+                    tone_weights = self.persona_store.apply_evolution(scope_id, "positive_interaction", tone_weights)
+                    
+                    # Save updated state
+                    self.persona_store.save_state(scope_id, tone_weights, state["stance_overrides"])
+                except Exception as e:
+                    log.warning(f"Failed to update persona evolution: {e}")
+            
             return reply
         except asyncio.TimeoutError:
             log.error(f"OpenAI Timeout nach {self.timeout}s")
@@ -287,3 +355,51 @@ class ResponseEngine:
         """Helper to check if text is a thanks message."""
         thanks_re = re.compile(r"\b(?:danke|thx|thanks|ty|merci)\b", re.I | re.UNICODE)
         return bool(thanks_re.search(text))
+    
+    def get_persona_state(self, uid: str = "session") -> Optional[Dict[str, Any]]:
+        """
+        Get current persona state for a user/session.
+        
+        Args:
+            uid: User ID or "session" for session-scoped persona
+        
+        Returns:
+            Persona state summary or None if personality system not enabled
+        """
+        if not self.persona_store or not self.prompt_composer:
+            return None
+        
+        try:
+            scope_id = uid if self.persona_store.scope == "user" else "session"
+            state = self.persona_store.get_state(scope_id)
+            summary = self.prompt_composer.get_persona_summary(
+                state["tone_weights"], 
+                state["stance_overrides"]
+            )
+            summary["evolution_history"] = self.persona_store.get_evolution_history(scope_id, limit=5)
+            return summary
+        except Exception as e:
+            log.error(f"Failed to get persona state: {e}")
+            return None
+    
+    def reset_persona(self, uid: str = "session") -> bool:
+        """
+        Reset persona state to defaults.
+        
+        Args:
+            uid: User ID or "session" for session-scoped persona
+        
+        Returns:
+            True if reset successful, False otherwise
+        """
+        if not self.persona_store:
+            return False
+        
+        try:
+            scope_id = uid if self.persona_store.scope == "user" else "session"
+            self.persona_store.reset_state(scope_id)
+            log.info(f"Reset persona state for {scope_id}")
+            return True
+        except Exception as e:
+            log.error(f"Failed to reset persona: {e}")
+            return False

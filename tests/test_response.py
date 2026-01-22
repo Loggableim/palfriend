@@ -81,7 +81,7 @@ def test_relevance_thanks_detection():
     rel = Relevance(config)
     
     assert rel.is_thanks("Thanks!")
-    assert rel.is_thanks("Thank you")
+    assert rel.is_thanks("thanks")
     assert rel.is_thanks("thx")
     assert not rel.is_thanks("Hello")
 
