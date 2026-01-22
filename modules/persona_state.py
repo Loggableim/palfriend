@@ -32,6 +32,14 @@ class PersonaStateStore:
         self.seed = config.get("persistence", {}).get("seed")
         self.scope = config.get("persistence", {}).get("scope", "session")
         
+        # Initialize telemetry (optional)
+        self.telemetry = None
+        try:
+            from modules.persona_telemetry import get_telemetry
+            self.telemetry = get_telemetry()
+        except Exception as e:
+            log.debug(f"Telemetry not available: {e}")
+        
         # Initialize random seed for determinism if provided
         if self.seed is not None:
             random.seed(self.seed)
@@ -156,6 +164,7 @@ class PersonaStateStore:
         if volatility <= 0:
             return tone_weights
         
+        original_weights = tone_weights.copy()
         drifted = {}
         for tone, weight in tone_weights.items():
             # Apply random drift
@@ -166,6 +175,11 @@ class PersonaStateStore:
         total = sum(drifted.values())
         if total > 0:
             drifted = {k: v / total for k, v in drifted.items()}
+        
+        # Track telemetry
+        if self.telemetry:
+            tone_changes = {k: drifted[k] - original_weights[k] for k in drifted}
+            self.telemetry.track_drift(volatility, tone_changes)
         
         log.debug(f"Applied drift with volatility {volatility}")
         return drifted
@@ -222,6 +236,10 @@ class PersonaStateStore:
         
         # Log evolution event
         self._log_evolution(scope_id, trigger, magnitude, target_tone)
+        
+        # Track telemetry
+        if self.telemetry:
+            self.telemetry.track_evolution(trigger, magnitude, target_tone)
         
         log.debug(f"Applied evolution for trigger '{trigger}': {target_tone} +{magnitude}")
         return evolved

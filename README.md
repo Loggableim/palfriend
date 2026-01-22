@@ -118,12 +118,41 @@ Key configuration sections:
 
 - Real-time TikTok live event processing (comments, gifts, follows, etc.)
 - AI-powered response generation using OpenAI
+- **🎭 Personality-Bias System**: Configurable, evolving AI personality with drift, evolution, and refusal logic
 - Voice activity detection for microphone input
 - Message batching and prioritization
 - User memory and interaction history
+- Advanced features: RAG memory, mood tracking, relationship levels
 - Event deduplication
 - Configurable greeting and response rules
-- GUI for easy configuration
+- Modern web-based GUI with dark/light theme
+- REST API for programmatic control
+
+### Advanced Features
+
+#### Personality-Bias System (New!)
+
+Give your AI a dynamic personality that evolves over time:
+- **Configurable Persona**: Define name, backstory, and key traits
+- **Tone Weights**: Balance formal, casual, playful, and sarcastic tones
+- **Drift & Evolution**: Personality naturally shifts based on interactions
+- **Refusal Logic**: Pattern-based refusals with safety guardrails
+- **Persistence**: Session or user-scoped personas with SQLite storage
+- **Deterministic Testing**: Seed-based reproducibility for testing
+
+See [PERSONALITY_BIAS.md](PERSONALITY_BIAS.md) for complete documentation.
+
+#### RAG Memory System
+
+- Semantic memory using ChromaDB vector database
+- Retrieves relevant past interactions for context
+- Improves response quality and continuity
+
+#### Mood & Relationship Tracking
+
+- Bot mood system: NEUTRAL, HAPPY, HYPE, ANNOYED, TIRED
+- User relationship levels: STRANGER → REGULAR → FRIEND → BESTIE
+- XP-based progression with personalized responses
 
 ## Migration from Legacy Code
 

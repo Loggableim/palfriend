@@ -27,6 +27,14 @@ class PromptComposer:
         self.base_system_prompt = config.get("system_prompt", "")
         self.enabled = self.personality_config.get("enabled", 0)
         
+        # Initialize telemetry (optional)
+        self.telemetry = None
+        try:
+            from modules.persona_telemetry import get_telemetry
+            self.telemetry = get_telemetry()
+        except Exception as e:
+            log.debug(f"Telemetry not available: {e}")
+        
         log.info(f"PromptComposer initialized (enabled: {self.enabled})")
     
     def compose_prompt(self, tone_weights: Dict[str, float], 
@@ -153,6 +161,8 @@ class PromptComposer:
         # Check safety overrides first (highest priority)
         safety_refusal = self._check_safety_refusal(text)
         if safety_refusal:
+            if self.telemetry:
+                self.telemetry.track_refusal("safety_override", "forbidden_topic")
             return safety_refusal
         
         # Check refusal patterns
@@ -165,8 +175,16 @@ class PromptComposer:
             mode = pattern.get("mode", "brief_and_cold")
             
             # Check if any trigger matches
-            if any(trigger in text_lower for trigger in triggers):
+            matched_trigger = None
+            for trigger in triggers:
+                if trigger in text_lower:
+                    matched_trigger = trigger
+                    break
+            
+            if matched_trigger:
                 response = modes.get(mode, "I'd rather not respond to that.")
+                if self.telemetry:
+                    self.telemetry.track_refusal(mode, matched_trigger)
                 log.info(f"Refusal triggered for mode: {mode}")
                 return response
         
