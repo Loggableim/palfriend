@@ -45,7 +45,7 @@ jobs:
     
     - name: Build executable with PyInstaller
       run: |
-        pyinstaller --noconfirm --onefile --windowed --name "palfriend-launcher" --add-data "frontend/build;frontend/build" app.py
+        pyinstaller --noconfirm palfriend-launcher.spec
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
