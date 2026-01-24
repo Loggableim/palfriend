@@ -99,10 +99,8 @@ hiddenimports = [
     'sounddevice',
     'soundfile',
     # AI/ML libraries
-    'chromadb',
-    'sentence_transformers',
-    'transformers',
-    'torch',
+    # Note: chromadb and sentence_transformers are optional
+    # They will be included if available, but build will continue without them
     'numpy',
     'tiktoken',
     # Database
@@ -136,6 +134,24 @@ except Exception:
 
 try:
     hiddenimports += collect_submodules('TikTokLive')
+except Exception:
+    pass
+
+# Optional: Try to include chromadb and related packages if available
+# These are optional dependencies that may not be available on all platforms
+try:
+    hiddenimports.extend([
+        'chromadb',
+        'sentence_transformers',
+        'transformers',
+        'torch',
+    ])
+    hiddenimports += collect_submodules('chromadb')
+except Exception:
+    pass
+
+try:
+    hiddenimports += collect_submodules('sentence_transformers')
 except Exception:
     pass
 

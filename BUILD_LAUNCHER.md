@@ -14,9 +14,11 @@ The PalFriend launcher is a standalone Windows executable (.exe) that:
 
 ### For Building the Launcher
 
-1. **Python 3.8 or higher** (3.12 recommended)
+1. **Python 3.8 to 3.13** (3.12 recommended)
    - Download from: https://www.python.org/downloads/
    - Make sure to check "Add Python to PATH" during installation
+   - **Note:** Python 3.14 may have compatibility issues with some ML dependencies (chromadb/onnxruntime)
+   - If you're on Python 3.14+, the build will succeed but without optional RAG features
 
 2. **Node.js 16 or higher** (for frontend build)
    - Download from: https://nodejs.org/
@@ -101,9 +103,26 @@ The build is configured via the `palfriend-launcher.spec` file, which:
 - **`build_launcher.bat`** - Windows build script
 - **`build_launcher.sh`** - Linux/Mac build script
 
+### Optional Features
+
+The launcher includes core functionality by default. Advanced features like RAG (Retrieval-Augmented Generation) are optional:
+
+- **RAG Features** (chromadb, sentence-transformers): Optional, requires compatible Python version (3.8-3.13)
+  - If not available, the application will still work but without semantic memory search
+  - The build script will continue even if these dependencies can't be installed
+  
+To enable optional features, uncomment the relevant lines in `requirements.txt` before building.
+
 ## Troubleshooting
 
 ### Build Issues
+
+**Problem**: `onnxruntime` or chromadb dependency conflict (especially on Python 3.14+)
+
+**Solution**: ChromaDB and its dependencies are now optional. The build will continue without them:
+- The launcher will build successfully but without RAG (Retrieval-Augmented Generation) features
+- To include RAG features, use Python 3.12 or 3.13 and uncomment chromadb/sentence-transformers in requirements.txt
+- The application will work fine without these optional features
 
 **Problem**: `ModuleNotFoundError` during build
 
