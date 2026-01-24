@@ -91,27 +91,39 @@ class MemoryDB:
             UserModel object
         """
         async with self._lock:
-            cursor = await self._conn.execute(
-                "SELECT * FROM users WHERE uid = ?", (uid,)
+            return await self._get_user_unlocked(uid)
+    
+    async def _get_user_unlocked(self, uid: str) -> UserModel:
+        """
+        Get or create a user record (internal method, assumes lock is held).
+        
+        Args:
+            uid: User unique ID
+        
+        Returns:
+            UserModel object
+        """
+        cursor = await self._conn.execute(
+            "SELECT * FROM users WHERE uid = ?", (uid,)
+        )
+        row = await cursor.fetchone()
+        
+        if row:
+            # Convert row to dict and parse JSON fields
+            user_dict = dict(row)
+            user_dict['messages'] = json.loads(user_dict['messages'])
+            user_dict['background'] = json.loads(user_dict['background'])
+            return UserModel(**user_dict)
+        else:
+            # Create new user
+            now = time.time()
+            new_user = UserModel(
+                uid=uid,
+                first_seen=now,
+                last_seen=now
             )
-            row = await cursor.fetchone()
-            
-            if row:
-                # Convert row to dict and parse JSON fields
-                user_dict = dict(row)
-                user_dict['messages'] = json.loads(user_dict['messages'])
-                user_dict['background'] = json.loads(user_dict['background'])
-                return UserModel(**user_dict)
-            else:
-                # Create new user
-                now = time.time()
-                new_user = UserModel(
-                    uid=uid,
-                    first_seen=now,
-                    last_seen=now
-                )
-                await self._save_user(new_user)
-                return new_user
+            await self._save_user(new_user)
+            return new_user
     
     async def _save_user(self, user: UserModel) -> None:
         """
@@ -141,6 +153,16 @@ class MemoryDB:
             json.dumps(user.background)
         ))
         await self._conn.commit()
+    
+    async def save_user(self, user: UserModel) -> None:
+        """
+        Save user to database (public method with locking).
+        
+        Args:
+            user: UserModel to save
+        """
+        async with self._lock:
+            await self._save_user(user)
     
     async def remember_event(
         self,
@@ -172,7 +194,7 @@ class MemoryDB:
             background: Background information to update
         """
         async with self._lock:
-            user = await self.get_user(uid)
+            user = await self._get_user_unlocked(uid)
             user.last_seen = time.time()
             
             if nickname:

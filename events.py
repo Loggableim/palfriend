@@ -166,7 +166,7 @@ async def schedule_greeting(
         v["greeted"] = True
         # Update last_greet time
         user.last_greet = time.time()
-        await memory_db._save_user(user)
+        await memory_db.save_user(user)
         pending_joins.add(v["nick"])
         log.info(f"Greet queued (pending summary): {v['nick']}")
     except Exception as e:

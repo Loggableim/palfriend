@@ -268,11 +268,8 @@ async def process_comments(
                 user = await memory_db.get_user(uid)
                 if now - user.last_greet >= greet_cd:
                     # Update last_greet
-                    await memory_db.remember_event(uid, nickname=nick)
-                    user_updated = await memory_db.get_user(uid)
-                    user_updated.last_greet = now
-                    # Save the update
-                    await memory_db._save_user(user_updated)
+                    user.last_greet = now
+                    await memory_db.save_user(user)
                     
                     await bucket.take()
                     if time.time() < next_allowed_global:
