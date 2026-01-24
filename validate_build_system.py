@@ -75,7 +75,7 @@ def main():
     print("Checking core files...")
     all_passed &= check_file("launcher.py", "Launcher entry point")
     all_passed &= check_file("bootstrap_launcher.py", "Bootstrapper entry point")
-    all_passed &= check_file("palfriend-launcher.spec", "Legacy PyInstaller spec file")
+    check_file("palfriend-launcher.spec", "Legacy PyInstaller spec file (optional)")
     all_passed &= check_file("palfriend.spec", "Main app PyInstaller spec file")
     all_passed &= check_file("palfriendlauncher.spec", "Bootstrapper PyInstaller spec file")
     all_passed &= check_file("build_launcher.bat", "Windows build script")

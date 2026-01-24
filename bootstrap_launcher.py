@@ -17,8 +17,6 @@ import shutil
 import subprocess
 import tkinter as tk
 from tkinter import ttk, filedialog, scrolledtext, messagebox
-from pathlib import Path
-import logging
 from datetime import datetime
 import traceback
 import tempfile
