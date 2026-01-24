@@ -183,14 +183,14 @@ This is a refactored version of the original `pal_ALONE.py` monolithic script. T
 pip install -r requirements.txt
 ```
 
-**Problem**: Port 5000 already in use (web interface)
+**Problem**: Port 5008 already in use (web interface)
 
-**Solution**: Either stop the other application using port 5000, or modify `app.py` to use a different port
+**Solution**: Either stop the other application using port 5008, or modify `app.py` to use a different port
 ```python
 # In app.py, change:
-socketio.run(app, host='0.0.0.0', port=5000)
+socketio.run(app, host='0.0.0.0', port=5008)
 # To:
-socketio.run(app, host='0.0.0.0', port=5001)
+socketio.run(app, host='0.0.0.0', port=5009)
 ```
 
 #### Frontend Issues
@@ -281,7 +281,7 @@ animaze:
 
 **Solution**:
 1. Check microphone is connected and working in system settings
-2. List available devices via API: `curl http://localhost:5000/api/devices`
+2. List available devices via API: `curl http://localhost:5008/api/devices`
 3. Set the correct device in settings using the device name from the list
 4. On Linux, ensure you have proper permissions for audio devices
 

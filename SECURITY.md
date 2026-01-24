@@ -93,7 +93,7 @@ chmod 600 memory.json
 #### Network Security
 - **Local Development**: Use localhost (127.0.0.1)
 - **Production**: Consider authentication for web interface
-- **Firewall**: Restrict access to port 5000 (Flask) if exposed
+- **Firewall**: Restrict access to port 5008 (Flask) if exposed
 
 ---
 

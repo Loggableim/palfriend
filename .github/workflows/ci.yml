@@ -177,7 +177,7 @@ jobs:
         sleep 10
         
         # Test if server is responding
-        curl -f http://localhost:5000/api/status || exit 1
+        curl -f http://localhost:5008/api/status || exit 1
         
         # Cleanup
         kill $SERVER_PID || true
