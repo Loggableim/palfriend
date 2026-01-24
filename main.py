@@ -6,6 +6,7 @@ import asyncio
 import gc
 import json
 import logging
+import os
 import time
 from typing import Dict, Any, Set
 
@@ -641,7 +642,10 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
     mem_cfg = cfg.get("memory", {})
     
     # Initialize MemoryDB
-    db_path = mem_cfg.get("file", "memory.json").replace(".json", ".db")
+    json_path = mem_cfg.get("file", "memory.json")
+    # Convert memory.json to memory.db safely
+    base_path = os.path.splitext(json_path)[0]
+    db_path = f"{base_path}.db"
     per_user_history = mem_cfg.get("per_user_history", 10)
     memory_db = MemoryDB(db_path=db_path, per_user_history=per_user_history)
     await memory_db.initialize()

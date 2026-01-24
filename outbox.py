@@ -5,9 +5,16 @@ Outbox batching module for grouping messages before sending.
 import asyncio
 import logging
 import time
-from typing import Callable, List, Tuple, Optional
+from typing import Callable, List, Optional, NamedTuple
 
 log = logging.getLogger("ChatPalBrain")
+
+
+class BatchItem(NamedTuple):
+    """Represents a batched message item."""
+    priority: int
+    text: str
+    uid: Optional[str]
 
 
 class OutboxBatcher:
@@ -45,7 +52,7 @@ class OutboxBatcher:
         self.send_callback = send_callback
         self.speech_state = speech_state
         self.mic_state = mic_state
-        self.buffer: List[Tuple[int, str, Optional[str]]] = []  # (priority, text, uid)
+        self.buffer: List[BatchItem] = []
         self.first_ts = None
         self._lock = asyncio.Lock()
     
@@ -63,24 +70,24 @@ class OutboxBatcher:
         
         async with self._lock:
             # Smart merge: if last message has same uid and priority, merge them
-            if uid and self.buffer and self.buffer[-1][2] == uid and self.buffer[-1][0] == priority:
-                last_priority, last_text, last_uid = self.buffer[-1]
-                merged_text = f"{last_text} {text.strip()}"
-                self.buffer[-1] = (last_priority, merged_text, last_uid)
+            if uid and self.buffer and self.buffer[-1].uid == uid and self.buffer[-1].priority == priority:
+                last_item = self.buffer[-1]
+                merged_text = f"{last_item.text} {text.strip()}"
+                self.buffer[-1] = BatchItem(priority=priority, text=merged_text, uid=uid)
                 log.info(f"Batch merge (uid={uid}): {merged_text}")
             else:
                 # Add as new item
-                self.buffer.append((priority, text.strip(), uid))
+                self.buffer.append(BatchItem(priority=priority, text=text.strip(), uid=uid))
                 log.info(f"Batch add (priority={priority}, uid={uid}): {text}")
             
             if self.first_ts is None:
                 self.first_ts = time.time()
             
             # Sort by priority (higher priority first), keeping uid info
-            self.buffer.sort(key=lambda x: x[0], reverse=True)
+            self.buffer.sort(key=lambda x: x.priority, reverse=True)
             
             # Check if we need to flush
-            texts = [item[1] for item in self.buffer]
+            texts = [item.text for item in self.buffer]
             joined = self.sep.join(texts)
             if len(joined) > self.max_chars or len(self.buffer) >= self.max_items:
                 await self._flush_locked()
@@ -108,7 +115,7 @@ class OutboxBatcher:
             return
         
         # Extract texts in priority order
-        texts = [item[1] for item in self.buffer]
+        texts = [item.text for item in self.buffer]
         payload = self.sep.join(texts)
         self.buffer.clear()
         self.first_ts = None
