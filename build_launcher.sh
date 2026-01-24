@@ -83,24 +83,60 @@ echo ""
 # Clean previous build
 rm -rf build dist
 
+echo "=================================="
+echo "Building Main Application (palfriend)"
+echo "=================================="
+echo ""
+
 # Build using spec file
-pyinstaller --noconfirm palfriend-launcher.spec
+pyinstaller --noconfirm palfriend.spec
 
 if [ $? -ne 0 ]; then
     echo ""
     echo "=================================="
-    echo "Build FAILED"
+    echo "Build FAILED (palfriend)"
     echo "=================================="
     echo "Please check the error messages above."
     exit 1
 fi
 
 echo ""
+echo "✓ palfriend built successfully"
+echo ""
+
+echo "=================================="
+echo "Building Bootstrapper Launcher (palfriendlauncher)"
+echo "=================================="
+echo ""
+
+# Build bootstrapper
+pyinstaller --noconfirm palfriendlauncher.spec
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "=================================="
+    echo "Build FAILED (palfriendlauncher)"
+    echo "=================================="
+    echo "Please check the error messages above."
+    exit 1
+fi
+
+echo ""
+echo "✓ palfriendlauncher built successfully"
+echo ""
+
+echo ""
 echo "=================================="
 echo "Build SUCCESSFUL"
 echo "=================================="
 echo ""
-echo "Executable created at: dist/palfriend-launcher"
+echo "Executables created:"
+echo "  Main App:     dist/palfriend/palfriend"
+echo "  Launcher:     dist/palfriendlauncher"
 echo ""
-echo "You can now run the launcher by executing: ./dist/palfriend-launcher"
+echo "To distribute:"
+echo "  1. Use palfriendlauncher as the installer/launcher"
+echo "  2. Bundle dist/palfriend/ folder with it (or embed it)"
+echo ""
+echo "You can test the launcher by running: ./dist/palfriendlauncher"
 echo ""

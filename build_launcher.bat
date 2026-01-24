@@ -86,13 +86,18 @@ REM Clean previous build
 if exist "build" rmdir /s /q build
 if exist "dist" rmdir /s /q dist
 
+echo ==================================
+echo Building Main Application (palfriend.exe)
+echo ==================================
+echo.
+
 REM Build using spec file
-pyinstaller --noconfirm palfriend-launcher.spec
+pyinstaller --noconfirm palfriend.spec
 
 if errorlevel 1 (
     echo.
     echo ==================================
-    echo Build FAILED
+    echo Build FAILED (palfriend.exe)
     echo ==================================
     echo Please check the error messages above.
     pause
@@ -100,14 +105,45 @@ if errorlevel 1 (
 )
 
 echo.
+echo ✓ palfriend.exe built successfully
+echo.
+
+echo ==================================
+echo Building Bootstrapper Launcher (palfriendlauncher.exe)
+echo ==================================
+echo.
+
+REM Build bootstrapper
+pyinstaller --noconfirm palfriendlauncher.spec
+
+if errorlevel 1 (
+    echo.
+    echo ==================================
+    echo Build FAILED (palfriendlauncher.exe)
+    echo ==================================
+    echo Please check the error messages above.
+    pause
+    exit /b 1
+)
+
+echo.
+echo ✓ palfriendlauncher.exe built successfully
+echo.
+
+echo.
 echo ==================================
 echo Build SUCCESSFUL
 echo ==================================
 echo.
-echo Executable created at: dist\palfriend-launcher.exe
+echo Executables created:
+echo   Main App:     dist\palfriend\palfriend.exe
+echo   Launcher:     dist\palfriendlauncher.exe
 echo.
-echo You can now run the launcher by double-clicking the .exe file
-echo or by running: dist\palfriend-launcher.exe
+echo To distribute:
+echo   1. Use palfriendlauncher.exe as the installer/launcher
+echo   2. Bundle dist\palfriend\ folder with it (or embed it)
+echo.
+echo You can test the launcher by running: dist\palfriendlauncher.exe
 echo.
 
 pause
