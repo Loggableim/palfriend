@@ -46,3 +46,7 @@ frontend/.env.development.local
 frontend/.env.test.local
 frontend/.env.production.local
 *.db
+
+# SQLite memory database
+memory.db
+memory.db-*

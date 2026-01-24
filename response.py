@@ -10,8 +10,6 @@ from typing import Dict, Any, Optional
 
 import openai
 
-from memory import get_background_info
-
 log = logging.getLogger("ChatPalBrain")
 
 
@@ -115,16 +113,16 @@ class ResponseEngine:
     Generates AI-powered responses to user comments.
     """
     
-    def __init__(self, cfg: Dict[str, Any], memory: Dict[str, Any]) -> None:
+    def __init__(self, cfg: Dict[str, Any], memory_db) -> None:
         """
         Initialize response engine.
         
         Args:
             cfg: Configuration dictionary
-            memory: Memory dictionary for user history
+            memory_db: MemoryDB instance for user history
         """
         self.cfg = cfg
-        self.memory = memory
+        self.memory_db = memory_db
         self.openai_client = openai.OpenAI(api_key=cfg["openai"]["api_key"])
         self.system_prompt = cfg.get("system_prompt", "")
         cache_size = int(cfg.get("openai", {}).get("cache_size", 128))
@@ -200,8 +198,9 @@ class ResponseEngine:
                 log.info(f"Refusal triggered for user {uid}")
                 return refusal
         
-        user_history = "\n".join(self.memory["users"].get(uid, {}).get("messages", []))
-        bg_info = get_background_info(self.memory, uid)
+        user = await self.memory_db.get_user(uid)
+        user_history = "\n".join(user.messages)
+        bg_info = await self.memory_db.get_background_info(uid)
         
         # Fetch RAG context if available
         rag_context = ""
