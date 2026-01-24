@@ -431,7 +431,7 @@ Test the full stack:
 
 1. Start the backend: `python app.py`
 2. Build the frontend: `cd frontend && npm run build`
-3. Test API endpoints: `curl http://localhost:5000/api/status`
+3. Test API endpoints: `curl http://localhost:5008/api/status`
 4. Test WebSocket connection in browser console
 
 ### Manual Testing Checklist

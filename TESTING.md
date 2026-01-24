@@ -11,7 +11,7 @@ python3 app.py
 ```
 
 Expected output:
-- Flask app starts on port 5000
+- Flask app starts on port 5008
 - No errors about missing modules
 - WebSocket server initialized
 - API endpoints registered
@@ -20,16 +20,16 @@ Test API endpoints with curl:
 
 ```bash
 # Get settings
-curl http://localhost:5000/api/settings
+curl http://localhost:5008/api/settings
 
 # Get status
-curl http://localhost:5000/api/status
+curl http://localhost:5008/api/status
 
 # Get devices
-curl http://localhost:5000/api/devices
+curl http://localhost:5008/api/devices
 
 # Get defaults
-curl http://localhost:5000/api/defaults
+curl http://localhost:5008/api/defaults
 ```
 
 ### 2. Frontend Development Testing
@@ -41,7 +41,7 @@ npm run dev
 ```
 
 Expected output:
-- Vite dev server starts on port 3000
+- Vite dev server starts on port 3006
 - Opens browser automatically
 - No compilation errors
 - Hot reload works
@@ -70,7 +70,7 @@ cd ..
 python3 app.py
 ```
 
-Then open http://localhost:5000 in browser.
+Then open http://localhost:5008 in browser.
 
 ## Feature Testing Checklist
 
@@ -155,7 +155,7 @@ Then open http://localhost:5000 in browser.
 ### Backend won't start
 - Check Python version (must be 3.8+)
 - Install missing dependencies: `pip install -r requirements.txt`
-- Check for port conflicts (5000)
+- Check for port conflicts (5008)
 
 ### WebSocket won't connect
 - Ensure Flask backend is running

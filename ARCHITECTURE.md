@@ -548,7 +548,7 @@ gui.run()  # Blocks until window closed
 from app import app, socketio
 
 # Start web server
-socketio.run(app, host='0.0.0.0', port=5000)
+socketio.run(app, host='0.0.0.0', port=5008)
 ```
 
 ### Dependencies
@@ -590,7 +590,7 @@ python app.py
 ./start_web.sh  # Linux/Mac
 start_web.bat   # Windows
 
-# Access at http://localhost:5000
+# Access at http://localhost:5008
 ```
 
 ---

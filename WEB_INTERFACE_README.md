@@ -71,7 +71,7 @@ cd frontend
 npm run dev
 ```
 
-The frontend will be available at http://localhost:3000 (proxied to Flask at port 5000).
+The frontend will be available at http://localhost:3006 (proxied to Flask at port 5008).
 
 ### Production Mode
 
@@ -87,7 +87,7 @@ cd ..
 python app.py
 ```
 
-The application will be available at http://localhost:5000
+The application will be available at http://localhost:5008
 
 ## Legacy GUI (Tkinter)
 
@@ -331,11 +331,11 @@ const theme = createTheme({
 ### Frontend won't start
 - Ensure Node.js 16+ is installed
 - Delete `node_modules` and run `npm install`
-- Check for port conflicts (default: 3000)
+- Check for port conflicts (default: 3006)
 
 ### Backend won't start
 - Ensure all Python dependencies are installed
-- Check for port conflicts (default: 5000)
+- Check for port conflicts (default: 5008)
 - Review Flask error logs
 
 ### WebSocket connection fails

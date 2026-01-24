@@ -401,7 +401,7 @@ def main():
         - Consider using authentication middleware if exposing publicly
     """
     # Run Flask-SocketIO server
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5008))
     log.info(f'Starting web interface on http://localhost:{port}')
     socketio.run(app, host='0.0.0.0', port=port, debug=False, allow_unsafe_werkzeug=True)  # nosec B104
 
