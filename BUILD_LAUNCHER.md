@@ -17,8 +17,8 @@ The PalFriend launcher is a standalone Windows executable (.exe) that:
 1. **Python 3.8 to 3.13** (3.12 recommended)
    - Download from: https://www.python.org/downloads/
    - Make sure to check "Add Python to PATH" during installation
-   - **Note:** Python 3.14 may have compatibility issues with some ML dependencies (chromadb/onnxruntime)
-   - If you're on Python 3.14+, the build will succeed but without optional RAG features
+   - **Note:** Python 3.14 is not fully supported due to missing onnxruntime wheels on Windows
+   - If using Python 3.14+, the build will succeed but without optional RAG features
 
 2. **Node.js 16 or higher** (for frontend build)
    - Download from: https://nodejs.org/
@@ -145,9 +145,9 @@ cd ..
 
 **Solution**: This is normal. The executable includes:
 - Python runtime
-- All dependencies (Flask, OpenAI, ChromaDB, etc.)
+- All dependencies (Flask, OpenAI, etc.)
+- Optional ML dependencies (ChromaDB, sentence-transformers) if available
 - Frontend assets
-- ML models
 
 **Problem**: Build fails with "UPX not available"
 

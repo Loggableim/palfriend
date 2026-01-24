@@ -18,8 +18,8 @@ soundfile>=0.12.0
 python-dotenv>=1.0.0
 
 # Optional dependencies for advanced features
-# RAG (Retrieval-Augmented Generation) - requires onnxruntime which may not be available on all platforms/Python versions
-# Uncomment the lines below if you want RAG features and have a compatible environment:
+# RAG (Retrieval-Augmented Generation) - requires onnxruntime which has no pre-built wheels for Python 3.14+ on Windows
+# Uncomment the lines below if you want RAG features and have Python 3.8-3.13:
 # chromadb>=0.4.13
 # sentence-transformers>=2.2.0
 
