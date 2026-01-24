@@ -56,6 +56,9 @@ except Exception:
     pass
 
 # Hidden imports - modules that PyInstaller might miss
+# PyInstaller's static analysis may miss dynamically imported modules,
+# conditionally imported modules, or modules loaded via plugin systems.
+# We explicitly list all application modules here to ensure they're included.
 hiddenimports = [
     # Core modules
     'settings',

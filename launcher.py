@@ -52,8 +52,9 @@ def main():
     try:
         from app import main as app_main
         
-        # Schedule browser to open
-        url = "http://localhost:5008"
+        # Get port from environment variable (same as app.py)
+        port = int(os.environ.get('PORT', 5008))
+        url = f"http://localhost:{port}"
         log.info(f"Starting PalFriend web interface on {url}")
         open_browser(url, delay=3.0)
         

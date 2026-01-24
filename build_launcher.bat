@@ -17,7 +17,7 @@ if errorlevel 1 (
 )
 
 echo Checking Python dependencies...
-pip install -q pyinstaller
+pip install -q "pyinstaller>=6.0.0"
 
 REM Check if Node.js is installed (for frontend build)
 node --version >nul 2>&1

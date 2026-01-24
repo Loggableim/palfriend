@@ -25,7 +25,7 @@ if ! command -v pip3 &> /dev/null; then
 fi
 
 echo "Installing PyInstaller..."
-pip3 install -q pyinstaller
+pip3 install -q "pyinstaller>=6.0.0"
 
 # Check if Node.js is installed (for frontend build)
 if ! command -v node &> /dev/null; then
