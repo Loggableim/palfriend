@@ -15,6 +15,24 @@ animaze:
   retry_max_attempts: 5
   retry_base_delay: 1.0
 
+# Fish Audio TTS Integration (optional)
+# Set tts.enabled: 1 to use local TTS instead of Animaze
+tts:
+  enabled: 0                    # Enable TTS (1=on, 0=off, defaults to Animaze if disabled)
+  provider: fish_audio          # TTS provider
+  fish_audio_api_key: ""        # Optional: can use .env file instead
+  fish_audio_voice_id: ""       # Optional: can use .env file instead
+  format: wav                   # Audio format
+  sample_rate: 44100            # Sample rate
+  cache_enabled: 1              # Enable audio caching to reduce API calls
+  max_cache_age_days: 30        # Cache retention period
+
+# Audio Output Configuration (for TTS)
+audio:
+  output_device: ""             # Output device (empty=default, or device name/index)
+  sample_rate: 44100            # Audio sample rate
+  channels: 1                   # Audio channels (1=mono, 2=stereo)
+
 # OpenAI API settings
 openai:
   api_key: "your-api-key-here"
