@@ -61,6 +61,30 @@ function Settings() {
       }
     } catch (error) {
       showSnackbar(t('settings_load_error'), 'error');
+      // Set default empty settings to allow UI to render
+      setSettings({
+        tiktok: { unique_id: '', session_id: '' },
+        animaze: { host: 'localhost', port: 9000 },
+        openai: { api_key: '', model: 'gpt-4o-mini' },
+        comment: {
+          enabled: 0,
+          global_cooldown: 6,
+          per_user_cooldown: 15,
+          max_replies_per_min: 20,
+          reply_threshold: 0.6,
+          respond_to_greetings: 0,
+          respond_to_thanks: 0
+        },
+        microphone: {
+          enabled: 0,
+          device: '',
+          silence_threshold: 0.02
+        },
+        join_rules: {
+          enabled: 0,
+          greet_after_seconds: 30
+        }
+      });
     }
   };
 
@@ -517,7 +541,7 @@ function Settings() {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: 'bottom', right: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
           {snackbar.message}
