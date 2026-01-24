@@ -6,6 +6,7 @@ import asyncio
 import gc
 import json
 import logging
+import os
 import time
 from typing import Dict, Any, Set
 
@@ -24,7 +25,7 @@ from TikTokLive.events import (
 )
 
 from settings import load_settings, save_settings
-from memory import load_memory, save_memory, remember_event, get_user
+from memory import MemoryDB
 from speech import SpeechState, MicState, MicrophoneMonitor
 from utils import trim_text, TokenBucket
 from response import Relevance, ResponseEngine
@@ -201,8 +202,7 @@ async def sender_worker(cfg: Dict[str, Any], speech: SpeechState) -> None:
 
 async def process_comments(
     cfg: Dict[str, Any],
-    memory: Dict[str, Any],
-    mem_cfg: Dict[str, Any],
+    memory_db: MemoryDB,
     batcher: OutboxBatcher,
     viewers: Dict[str, Dict]
 ) -> None:
@@ -211,8 +211,7 @@ async def process_comments(
     
     Args:
         cfg: Configuration dictionary
-        memory: Memory dictionary
-        mem_cfg: Memory configuration
+        memory_db: MemoryDB instance
         batcher: OutboxBatcher instance
         viewers: Active viewers dictionary
     """
@@ -238,7 +237,7 @@ async def process_comments(
     resp_thanks = bool(int(comment_cfg.get("respond_to_thanks", 1)))
     
     scorer = Relevance(comment_cfg)
-    resp = ResponseEngine(cfg, memory)
+    resp = ResponseEngine(cfg, memory_db)
     bucket = TokenBucket(capacity=max_per_min, rate_per_sec=max(1, max_per_min) / 60.0)
     
     next_allowed_global = 0.0
@@ -267,14 +266,17 @@ async def process_comments(
             
             # Handle greetings
             if resp_greet and scorer.is_greeting(txt) and ("?" not in txt) and (len(txt.split()) <= 4):
-                u = get_user(memory, uid, mem_cfg.get("per_user_history", 10))
-                if now - u.get("last_greet", 0) >= greet_cd:
-                    u["last_greet"] = now
+                user = await memory_db.get_user(uid)
+                if now - user.last_greet >= greet_cd:
+                    # Update last_greet
+                    user.last_greet = now
+                    await memory_db.save_user(user)
+                    
                     await bucket.take()
                     if time.time() < next_allowed_global:
                         await asyncio.sleep(max(0.01, next_allowed_global - time.time()))
                     if batcher:
-                        await batcher.add(f"{nick} sagt hallo")
+                        await batcher.add(f"{nick} sagt hallo", uid=uid)
                     next_allowed_global = time.time() + global_cd
                     per_user_until_local[uid] = time.time() + per_user_cd
                     quick = True
@@ -288,7 +290,7 @@ async def process_comments(
                 if time.time() < next_allowed_global:
                     await asyncio.sleep(max(0.01, next_allowed_global - time.time()))
                 if batcher:
-                    await batcher.add(f"{nick} bedankt sich")
+                    await batcher.add(f"{nick} bedankt sich", uid=uid)
                 next_allowed_global = time.time() + global_cd
                 per_user_until_local[uid] = time.time() + per_user_cd
                 continue
@@ -300,7 +302,7 @@ async def process_comments(
                     await asyncio.sleep(max(0.01, next_allowed_global - time.time()))
                 reply = await resp.reply_to_comment(nick, txt, uid)
                 if reply and batcher:
-                    await batcher.add(f"@{nick}: {txt} → {reply}")
+                    await batcher.add(f"@{nick}: {txt} → {reply}", uid=uid)
                     next_allowed_global = time.time() + global_cd
                     per_user_until_local[uid] = time.time() + per_user_cd
         except Exception as e:
@@ -309,8 +311,7 @@ async def process_comments(
 
 async def process_event_batch(
     cfg: Dict[str, Any],
-    memory: Dict[str, Any],
-    mem_cfg: Dict[str, Any],
+    memory_db: MemoryDB,
     batcher: OutboxBatcher,
     viewers: Dict[str, Dict],
     greet_tasks: Dict[str, asyncio.Task],
@@ -321,8 +322,7 @@ async def process_event_batch(
     
     Args:
         cfg: Configuration dictionary
-        memory: Memory dictionary
-        mem_cfg: Memory configuration
+        memory_db: MemoryDB instance
         batcher: OutboxBatcher instance
         viewers: Active viewers dictionary
         greet_tasks: Active greeting tasks
@@ -365,35 +365,35 @@ async def process_event_batch(
                     if isinstance(evt, GiftEvent):
                         gname = getattr(evt.gift, "name", "Gift")
                         count = int(getattr(evt, "repeat_count", getattr(evt.gift, "repeat_count", 1)) or 1)
-                        remember_event(memory, mem_cfg, uid, nickname=nick, gift_inc=count)
+                        await memory_db.remember_event(uid, nickname=nick, gift_inc=count)
                         if batcher:
-                            await batcher.add(f"{nick} sent {gname} x{count}", priority=priority)
+                            await batcher.add(f"{nick} sent {gname} x{count}", priority=priority, uid=uid)
                     elif isinstance(evt, JoinEvent):
-                        remember_event(memory, mem_cfg, uid, nickname=nick, join=True)
+                        await memory_db.remember_event(uid, nickname=nick, join=True)
                         if int(cfg.get("join_rules", {}).get("enabled", 1)):
                             if uid not in greet_tasks:
                                 greet_tasks[uid] = asyncio.create_task(
-                                    schedule_greeting(uid, viewers, greet_tasks, pending_joins, memory, mem_cfg, cfg)
+                                    schedule_greeting(uid, viewers, greet_tasks, pending_joins, memory_db, cfg)
                                 )
                             pending_joins.add(nick)
                     elif isinstance(evt, FollowEvent):
-                        remember_event(memory, mem_cfg, uid, nickname=nick, follow=True)
+                        await memory_db.remember_event(uid, nickname=nick, follow=True)
                         if batcher:
-                            await batcher.add(f"{nick} followed", priority=priority)
+                            await batcher.add(f"{nick} followed", priority=priority, uid=uid)
                     elif isinstance(evt, ShareEvent):
-                        remember_event(memory, mem_cfg, uid, nickname=nick, share=True)
+                        await memory_db.remember_event(uid, nickname=nick, share=True)
                         if batcher:
-                            await batcher.add(f"{nick} shared", priority=priority)
+                            await batcher.add(f"{nick} shared", priority=priority, uid=uid)
                     elif isinstance(evt, SubscribeEvent):
-                        remember_event(memory, mem_cfg, uid, nickname=nick, sub=True)
+                        await memory_db.remember_event(uid, nickname=nick, sub=True)
                         if batcher:
-                            await batcher.add(f"{nick} subscribed", priority=priority)
+                            await batcher.add(f"{nick} subscribed", priority=priority, uid=uid)
                     elif isinstance(evt, LikeEvent):
                         count = int(getattr(evt, "count", 1))
                         if count >= int(cfg.get("like_threshold", 20)):
-                            remember_event(memory, mem_cfg, uid, nickname=nick, like_inc=count)
+                            await memory_db.remember_event(uid, nickname=nick, like_inc=count)
                             if batcher:
-                                await batcher.add(f"{nick} liked x{count}", priority=priority)
+                                await batcher.add(f"{nick} liked x{count}", priority=priority, uid=uid)
                 except Exception as e:
                     log.error(f"Error processing event: {e}")
         except asyncio.CancelledError:
@@ -444,8 +444,7 @@ async def join_announcer_worker(cfg: Dict[str, Any], batcher: OutboxBatcher, spe
 
 async def tiktok_listener(
     cfg: Dict[str, Any],
-    memory: Dict[str, Any],
-    mem_cfg: Dict[str, Any],
+    memory_db: MemoryDB,
     deduper: EventDeduper,
     viewers: Dict[str, Dict]
 ) -> None:
@@ -454,8 +453,7 @@ async def tiktok_listener(
     
     Args:
         cfg: Configuration dictionary
-        memory: Memory dictionary
-        mem_cfg: Memory configuration
+        memory_db: MemoryDB instance
         deduper: EventDeduper instance
         viewers: Active viewers dictionary
     """
@@ -500,7 +498,7 @@ async def tiktok_listener(
                 return
             
             touch_viewer(viewers, uid, nick)
-            remember_event(memory, mem_cfg, uid, nickname=nick, message=txt)
+            await memory_db.remember_event(uid, nickname=nick, message=txt)
             await comment_queue.put({"uid": uid, "nick": nick, "text": low})
             log.info(f"TikTok Kommentar von {nick}: {txt}")
         except Exception as e:
@@ -604,29 +602,20 @@ async def tiktok_listener(
                 raise
 
 
-async def clean_memory_periodic(memory: Dict[str, Any], mem_cfg: Dict[str, Any]) -> None:
+async def clean_memory_periodic(memory_db: MemoryDB, decay_days: int) -> None:
     """
     Periodically clean old memory entries.
     
     Args:
-        memory: Memory dictionary
-        mem_cfg: Memory configuration
+        memory_db: MemoryDB instance
+        decay_days: Number of days after which user data is considered stale
     """
     while True:
         await asyncio.sleep(3600)
         try:
-            decay_sec = mem_cfg.get("decay_days", 90) * 86400
-            now = time.time()
-            old_count = len(memory["users"])
-            memory["users"] = {
-                uid: u
-                for uid, u in memory["users"].items()
-                if now - u.get("last_seen", 0) < decay_sec
-            }
-            new_count = len(memory["users"])
-            removed = old_count - new_count
-            
-            save_memory(memory, mem_cfg.get("file", "memory.json"))
+            old_count = await memory_db.get_user_count()
+            removed = await memory_db.clean_old_users(decay_days)
+            new_count = await memory_db.get_user_count()
             
             # Trigger garbage collection
             gc.collect()
@@ -651,7 +640,16 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
     mic = MicState()
     
     mem_cfg = cfg.get("memory", {})
-    memory = load_memory(mem_cfg.get("file", "memory.json"), mem_cfg.get("decay_days", 90))
+    
+    # Initialize MemoryDB
+    json_path = mem_cfg.get("file", "memory.json")
+    # Convert memory.json to memory.db safely
+    base_path = os.path.splitext(json_path)[0]
+    db_path = f"{base_path}.db"
+    per_user_history = mem_cfg.get("per_user_history", 10)
+    memory_db = MemoryDB(db_path=db_path, per_user_history=per_user_history)
+    await memory_db.initialize()
+    log.info(f"MemoryDB initialized with {await memory_db.get_user_count()} users")
     
     deduper = EventDeduper(int(cfg.get("dedupe_ttl", 600)))
     
@@ -693,14 +691,14 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
     
     # Start background tasks
     asyncio.create_task(sender_worker(cfg, speech))
-    asyncio.create_task(clean_memory_periodic(memory, mem_cfg))
+    asyncio.create_task(clean_memory_periodic(memory_db, mem_cfg.get("decay_days", 90)))
     asyncio.create_task(batcher.worker())
     asyncio.create_task(join_announcer_worker(cfg, batcher, speech, mic))
-    asyncio.create_task(process_comments(cfg, memory, mem_cfg, batcher, viewers))
-    asyncio.create_task(process_event_batch(cfg, memory, mem_cfg, batcher, viewers, greet_tasks, PENDING_JOINS))
+    asyncio.create_task(process_comments(cfg, memory_db, batcher, viewers))
+    asyncio.create_task(process_event_batch(cfg, memory_db, batcher, viewers, greet_tasks, PENDING_JOINS))
     
     # Start TikTok listener
-    await tiktok_listener(cfg, memory, mem_cfg, deduper, viewers)
+    await tiktok_listener(cfg, memory_db, deduper, viewers)
 
 
 def main():

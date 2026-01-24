@@ -8,8 +8,6 @@ import logging
 import time
 from typing import Dict, Set
 
-from memory import get_user
-
 log = logging.getLogger("ChatPalBrain")
 
 
@@ -127,8 +125,7 @@ async def schedule_greeting(
     viewers: Dict[str, Dict],
     greet_tasks: Dict[str, asyncio.Task],
     pending_joins: Set[str],
-    memory: Dict,
-    mem_cfg: Dict,
+    memory_db,  # MemoryDB instance
     cfg: Dict
 ) -> None:
     """
@@ -139,8 +136,7 @@ async def schedule_greeting(
         viewers: Dictionary of active viewers
         greet_tasks: Dictionary of active greeting tasks
         pending_joins: Set of pending join greetings
-        memory: Memory dictionary
-        mem_cfg: Memory configuration
+        memory_db: MemoryDB instance
         cfg: Main configuration
     """
     if not int(cfg.get("join_rules", {}).get("enabled", 1)):
@@ -155,9 +151,9 @@ async def schedule_greeting(
         if v.get("greeted"):
             return
         
-        u = get_user(memory, uid, mem_cfg.get("per_user_history", 10))
+        user = await memory_db.get_user(uid)
         gcool = int(cfg.get("comment", {}).get("greeting_cooldown", 360))
-        if time.time() - u.get("last_greet", 0) < gcool:
+        if time.time() - user.last_greet < gcool:
             return
         
         if not should_consider_present(
@@ -168,7 +164,9 @@ async def schedule_greeting(
             return
         
         v["greeted"] = True
-        u["last_greet"] = time.time()
+        # Update last_greet time
+        user.last_greet = time.time()
+        await memory_db.save_user(user)
         pending_joins.add(v["nick"])
         log.info(f"Greet queued (pending summary): {v['nick']}")
     except Exception as e:
