@@ -6,7 +6,6 @@ import asyncio
 import hashlib
 import logging
 import os
-import tempfile
 import time
 from pathlib import Path
 from typing import Dict, Any, Optional
@@ -280,11 +279,39 @@ class TTSManager:
             file_path = await self._cache_audio(text, voice_id, audio_data)
             return file_path
         else:
-            # Save to temporary file
-            temp_path = self.cache_dir / f"temp_{int(time.time())}.wav"
+            # Save to temporary file with timestamp
+            # Note: These files should be cleaned up periodically or after use
+            temp_path = self.cache_dir / f"temp_{int(time.time() * 1000)}.wav"
             with open(temp_path, "wb") as f:
                 f.write(audio_data)
             return str(temp_path)
+    
+    async def clean_temp_files(self) -> int:
+        """
+        Clean temporary audio files (created when caching is disabled).
+        
+        Returns:
+            Number of files removed
+        """
+        try:
+            removed = 0
+            temp_pattern = "temp_*.wav"
+            
+            for temp_file in self.cache_dir.glob(temp_pattern):
+                try:
+                    # Remove files older than 1 hour
+                    if (time.time() - temp_file.stat().st_mtime) > 3600:
+                        temp_file.unlink()
+                        removed += 1
+                except Exception:
+                    pass
+            
+            if removed > 0:
+                log.info(f"Cleaned {removed} temporary audio files")
+            return removed
+        except Exception as e:
+            log.error(f"Temp file cleanup error: {e}")
+            return 0
     
     async def clean_old_cache(self) -> int:
         """

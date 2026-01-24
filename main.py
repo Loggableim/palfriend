@@ -732,6 +732,7 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
                     await asyncio.sleep(86400)  # Once per day
                     try:
                         await tts_manager.clean_old_cache()
+                        await tts_manager.clean_temp_files()
                     except Exception as e:
                         log.error(f"TTS cache cleanup error: {e}")
             
