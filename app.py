@@ -25,7 +25,9 @@ log = logging.getLogger("ChatPalBrain")
 # Determine static folder path based on whether running as PyInstaller bundle or normal Python
 if getattr(sys, 'frozen', False):
     # Running as compiled executable (PyInstaller)
-    static_folder = os.path.join(sys._MEIPASS, 'frontend', 'build')
+    # PyInstaller sets sys._MEIPASS to the temp folder where files are extracted
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    static_folder = os.path.join(base_path, 'frontend', 'build')
 else:
     # Running as normal Python script
     static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'build')

@@ -45,11 +45,11 @@ jobs:
     
     - name: Build executable with PyInstaller
       run: |
-        pyinstaller --noconfirm --onefile --windowed --name "palfriend launcher" --add-data "frontend/build;frontend/build" app.py
+        pyinstaller --noconfirm --onefile --windowed --name "palfriend-launcher" --add-data "frontend/build;frontend/build" app.py
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: palfriend-launcher-exe
-        path: dist/palfriend launcher.exe
+        path: dist/palfriend-launcher.exe
         retention-days: 30
