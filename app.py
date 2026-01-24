@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import os
+import sys
 import threading
 import time
 from typing import Any, Dict
@@ -21,8 +22,19 @@ from memory import load_memory
 
 log = logging.getLogger("ChatPalBrain")
 
+# Determine static folder path based on whether running as PyInstaller bundle or normal Python
+if getattr(sys, 'frozen', False):
+    # Running as compiled executable (PyInstaller)
+    # PyInstaller sets sys._MEIPASS to the temp folder where files are extracted
+    # In the rare case _MEIPASS is not set, fall back to script directory
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    static_folder = os.path.join(base_path, 'frontend', 'build')
+else:
+    # Running as normal Python script
+    static_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'build')
+
 # Flask app setup
-app = Flask(__name__, static_folder='frontend/build', static_url_path=None)
+app = Flask(__name__, static_folder=static_folder, static_url_path=None)
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
