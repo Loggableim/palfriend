@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import time
+import warnings
 from typing import Any, Dict, Optional, List
 
 import aiosqlite
@@ -302,7 +303,11 @@ def load_memory(path: str, decay_days: int) -> Dict[str, Any]:
     Returns:
         Dictionary containing user memory data
     """
-    log.warning("load_memory() is deprecated. Use MemoryDB.initialize() instead.")
+    warnings.warn(
+        "load_memory() is deprecated. Use MemoryDB() constructor and get_user() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     if not os.path.isfile(path):
         return {"users": {}, "created": time.time()}
     
@@ -337,7 +342,11 @@ def save_memory(mem: Dict[str, Any], path: str) -> None:
         mem: Memory dictionary to save
         path: Path to memory file
     """
-    log.warning("save_memory() is deprecated. MemoryDB saves automatically.")
+    warnings.warn(
+        "save_memory() is deprecated. MemoryDB saves automatically.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     try:
         tmp = f"{path}.tmp"
         with open(tmp, "w", encoding="utf-8") as f:
@@ -359,7 +368,11 @@ def get_user(memory: Dict[str, Any], uid: str, per_user_history: int) -> Dict[st
     Returns:
         User data dictionary
     """
-    log.warning("get_user() is deprecated. Use MemoryDB.get_user() instead.")
+    warnings.warn(
+        "get_user() is deprecated. Use MemoryDB.get_user() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     from collections import deque
     
     u = memory["users"].get(uid)
@@ -414,7 +427,11 @@ def remember_event(
         message: Message text to store
         background: Background information to update
     """
-    log.warning("remember_event() is deprecated. Use MemoryDB.remember_event() instead.")
+    warnings.warn(
+        "remember_event() is deprecated. Use MemoryDB.remember_event() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     from collections import deque
     
     if not mem_cfg.get("enabled", 1):
@@ -462,7 +479,11 @@ def get_background_info(memory: Dict[str, Any], uid: str) -> str:
     Returns:
         Formatted background information string
     """
-    log.warning("get_background_info() is deprecated. Use MemoryDB.get_background_info() instead.")
+    warnings.warn(
+        "get_background_info() is deprecated. Use MemoryDB.get_background_info() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     u = memory["users"].get(uid, {})
     bg = u.get("background", {})
     if not bg:
