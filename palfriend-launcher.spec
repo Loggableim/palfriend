@@ -67,9 +67,15 @@ hiddenimports = [
     'outbox',
     'gui',
     # Submodules
+    'modules',
     'modules.audio',
     'modules.tts',
-    'modules.personality_bias',
+    'modules.mood',
+    'modules.persona_state',
+    'modules.persona_telemetry',
+    'modules.prompt_composer',
+    'modules.rag',
+    'modules.relationships',
     # Flask and related
     'flask',
     'flask_cors',
