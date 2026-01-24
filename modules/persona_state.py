@@ -17,6 +17,7 @@ log = logging.getLogger("PersonaStateStore")
 class PersonaStateStore:
     """
     Manages persona state persistence with support for drift, evolution, and determinism.
+    Enhanced with smooth personality interpolation for gradual mood transitions.
     """
     
     def __init__(self, config: Dict[str, Any], db_path: str = "./persona_state.db"):
@@ -32,6 +33,13 @@ class PersonaStateStore:
         self.seed = config.get("persistence", {}).get("seed")
         self.scope = config.get("persistence", {}).get("scope", "session")
         
+        # Interpolation settings
+        self.interpolation_enabled = config.get("interpolation", {}).get("enabled", True)
+        self.interpolation_duration = config.get("interpolation", {}).get("duration_seconds", 300)  # 5 minutes default
+        
+        # Track interpolation state: {scope_id: {"target": weights, "start": weights, "start_time": timestamp}}
+        self._interpolation_state: Dict[str, Dict[str, Any]] = {}
+        
         # Initialize telemetry (optional)
         self.telemetry = None
         try:
@@ -46,7 +54,7 @@ class PersonaStateStore:
             log.info(f"Initialized with deterministic seed: {self.seed}")
         
         self._init_database()
-        log.info(f"PersonaStateStore initialized (scope: {self.scope}, db: {db_path})")
+        log.info(f"PersonaStateStore initialized (scope: {self.scope}, db: {db_path}, interpolation: {self.interpolation_enabled})")
     
     def _init_database(self) -> None:
         """Create database table if it doesn't exist."""
@@ -315,3 +323,67 @@ class PersonaStateStore:
         except Exception as e:
             log.error(f"Failed to get evolution history: {e}")
             return []
+    
+    def interpolate_weights(self, scope_id: str, target_weights: Dict[str, float], 
+                           current_weights: Dict[str, float]) -> Dict[str, float]:
+        """
+        Smoothly interpolate from current weights to target weights over time.
+        
+        Instead of snapping from "Happy" (1.0) to "Tired" (1.0), this gradually 
+        transitions the weights over the configured duration.
+        
+        Args:
+            scope_id: Scope identifier
+            target_weights: Target weight distribution
+            current_weights: Current weight distribution
+        
+        Returns:
+            Interpolated weights based on elapsed time
+        """
+        if not self.interpolation_enabled:
+            return target_weights
+        
+        now = time.time()
+        
+        # Check if we have an ongoing interpolation
+        if scope_id not in self._interpolation_state:
+            # Start new interpolation
+            self._interpolation_state[scope_id] = {
+                "start": deepcopy(current_weights),
+                "target": deepcopy(target_weights),
+                "start_time": now
+            }
+            log.debug(f"Started interpolation for {scope_id}")
+            return current_weights  # Return current on first call
+        
+        state = self._interpolation_state[scope_id]
+        
+        # Check if target has changed
+        if state["target"] != target_weights:
+            # Target changed, restart interpolation from current position
+            state["start"] = deepcopy(current_weights)
+            state["target"] = deepcopy(target_weights)
+            state["start_time"] = now
+            log.debug(f"Target changed, restarting interpolation for {scope_id}")
+        
+        elapsed = now - state["start_time"]
+        progress = min(1.0, elapsed / self.interpolation_duration)
+        
+        # Linear interpolation
+        interpolated = {}
+        for tone in current_weights.keys():
+            start_val = state["start"].get(tone, 0.0)
+            target_val = state["target"].get(tone, 0.0)
+            interpolated[tone] = start_val + (target_val - start_val) * progress
+        
+        # Normalize
+        total = sum(interpolated.values())
+        if total > 0:
+            interpolated = {k: v / total for k, v in interpolated.items()}
+        
+        if progress >= 1.0:
+            # Interpolation complete
+            log.debug(f"Interpolation complete for {scope_id}")
+            del self._interpolation_state[scope_id]
+        
+        return interpolated

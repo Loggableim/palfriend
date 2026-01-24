@@ -8,6 +8,7 @@ import re
 from typing import Dict, Any, Optional
 
 import openai
+from utils import fuzzy_match
 
 log = logging.getLogger("ChatPalBrain")
 
@@ -15,6 +16,7 @@ log = logging.getLogger("ChatPalBrain")
 class Relevance:
     """
     Scores comment relevance and identifies special message types.
+    Enhanced with sentiment analysis for mood control.
     """
     
     def __init__(self, conf: Dict[str, Any]) -> None:
@@ -33,10 +35,25 @@ class Relevance:
             re.I | re.UNICODE
         )
         self.thanks_re = re.compile(r"\b(?:danke|thx|thanks|ty|merci)\b", re.I | re.UNICODE)
+        
+        # Initialize sentiment analyzer
+        self.sentiment_analyzer = None
+        try:
+            from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+            self.sentiment_analyzer = SentimentIntensityAnalyzer()
+            log.info("Sentiment analyzer initialized")
+        except ImportError:
+            log.warning("vaderSentiment not installed, sentiment analysis disabled")
+        
+        # Store spam patterns for fuzzy matching
+        self.spam_patterns = [
+            "follow me", "subscribe", "check out", "click here",
+            "visit my", "free gift", "promo code"
+        ]
     
     def is_ignored(self, text: str) -> bool:
         """
-        Check if text should be ignored.
+        Check if text should be ignored using fuzzy matching for spam detection.
         
         Args:
             text: Text to check
@@ -45,12 +62,25 @@ class Relevance:
             True if text should be ignored, False otherwise
         """
         low = text.lower().strip()
+        
+        # Check exact startswith patterns
         if low.startswith(self.ignore_sw):
             return True
+        
+        # Check exact contains patterns
         if any(c in low for c in self.ignore_contains):
             return True
+        
+        # Check URL patterns
         if self.url_re.search(low):
             return True
+        
+        # Fuzzy match spam patterns (e.g., "F0llow me", "Folow me")
+        for pattern in self.spam_patterns:
+            if fuzzy_match(text, pattern, max_distance=2):
+                log.debug(f"Fuzzy matched spam pattern '{pattern}' in: {text}")
+                return True
+        
         return False
     
     def is_greeting(self, text: str) -> bool:
@@ -105,6 +135,67 @@ class Relevance:
             score += 0.05
         
         return min(1.0, score)
+    
+    def get_sentiment(self, text: str) -> float:
+        """
+        Calculate sentiment score for text using VADER.
+        
+        Args:
+            text: Text to analyze
+        
+        Returns:
+            Compound sentiment score from -1.0 (negative) to 1.0 (positive)
+        """
+        if not self.sentiment_analyzer:
+            return 0.0
+        
+        try:
+            scores = self.sentiment_analyzer.polarity_scores(text)
+            return scores['compound']
+        except Exception as e:
+            log.warning(f"Sentiment analysis failed: {e}")
+            return 0.0
+    
+    def apply_sentiment(self, sentiment: float, tone_weights: Dict[str, float]) -> Dict[str, float]:
+        """
+        Apply sentiment-based mood adjustment to personality weights.
+        
+        Negative sentiment shifts towards Gloomy/Tired.
+        Positive sentiment shifts towards Happy/Hype.
+        
+        Args:
+            sentiment: Sentiment score from -1.0 to 1.0
+            tone_weights: Current tone weight distribution
+        
+        Returns:
+            Adjusted tone weights (normalized)
+        """
+        if abs(sentiment) < 0.1:  # Neutral sentiment, no adjustment
+            return tone_weights
+        
+        adjusted = tone_weights.copy()
+        magnitude = abs(sentiment) * 0.1  # Scale down the impact
+        
+        if sentiment < 0:
+            # Negative sentiment - boost gloomy/tired tones
+            gloomy_tones = ["gloomy", "tired", "melancholic", "somber"]
+            for tone in gloomy_tones:
+                if tone in adjusted:
+                    adjusted[tone] = min(1.0, adjusted[tone] + magnitude)
+        else:
+            # Positive sentiment - boost happy/hype tones
+            happy_tones = ["happy", "hype", "energetic", "cheerful", "excited"]
+            for tone in happy_tones:
+                if tone in adjusted:
+                    adjusted[tone] = min(1.0, adjusted[tone] + magnitude)
+        
+        # Normalize to sum to 1.0
+        total = sum(adjusted.values())
+        if total > 0:
+            adjusted = {k: v / total for k, v in adjusted.items()}
+        
+        log.debug(f"Applied sentiment {sentiment:.2f} to tone weights")
+        return adjusted
 
 
 class ResponseEngine:
@@ -125,6 +216,17 @@ class ResponseEngine:
         self.openai_client = openai.OpenAI(api_key=cfg["openai"]["api_key"])
         self.system_prompt = cfg.get("system_prompt", "")
         self.timeout = float(cfg.get("openai", {}).get("request_timeout", 10.0))
+        
+        # Initialize TokenBuffer for dynamic context management
+        from utils import TokenBuffer
+        self.token_buffer = TokenBuffer(
+            max_tokens=cfg.get("token_buffer_max", 4000),
+            model=cfg["openai"]["model"]
+        )
+        
+        # Initialize Relevance for sentiment analysis
+        comment_cfg = cfg.get("comment", {})
+        self.relevance = Relevance(comment_cfg)
         
         # Initialize new features
         try:
@@ -165,6 +267,7 @@ class ResponseEngine:
     async def reply_to_comment(self, nick: str, text: str, uid: str) -> Optional[str]:
         """
         Generate a reply to a user comment using OpenAI.
+        Enhanced with sentiment analysis, entity extraction, and token-aware context.
         
         Args:
             nick: User nickname
@@ -174,6 +277,13 @@ class ResponseEngine:
         Returns:
             Generated reply text or None if failed
         """
+        # Extract and store entities from user message (async, non-blocking for response)
+        try:
+            from memory import extract_and_store_entities
+            asyncio.create_task(extract_and_store_entities(text, uid, self.memory_db, self.openai_client))
+        except Exception as e:
+            log.debug(f"Entity extraction task creation failed: {e}")
+        
         # Check for refusal first (personality-based)
         if self.prompt_composer:
             refusal = self.prompt_composer.check_refusal(text)
@@ -181,8 +291,38 @@ class ResponseEngine:
                 log.info(f"Refusal triggered for user {uid}")
                 return refusal
         
+        # Calculate sentiment
+        sentiment = self.relevance.get_sentiment(text)
+        log.debug(f"Sentiment for '{text}': {sentiment:.2f}")
+        
         user = await self.memory_db.get_user(uid)
-        user_history = "\n".join(user.messages)
+        
+        # Use TokenBuffer for context management
+        self.token_buffer.add_message(f"{nick}: {text}")
+        
+        # Check if summarization is needed
+        if self.token_buffer.needs_summarization():
+            log.info("Token buffer approaching limit, triggering summarization")
+            messages_to_summarize = self.token_buffer.get_messages_for_summarization()
+            
+            # Generate summary using LLM
+            try:
+                summary_prompt = "Summarize these chat messages concisely:\n\n" + "\n".join(messages_to_summarize)
+                summary_response = await asyncio.to_thread(
+                    self.openai_client.chat.completions.create,
+                    model=self.cfg["openai"]["model"],
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant that summarizes chat history."},
+                        {"role": "user", "content": summary_prompt}
+                    ],
+                    max_tokens=200
+                )
+                summary = summary_response.choices[0].message.content.strip()
+                self.token_buffer.replace_with_summary(summary)
+            except Exception as e:
+                log.warning(f"Failed to generate summary: {e}")
+        
+        user_history = "\n".join(self.token_buffer.get_all_messages()[-20:])  # Use recent buffer messages
         bg_info = await self.memory_db.get_background_info(uid)
         
         # Fetch RAG context if available
@@ -220,12 +360,18 @@ class ResponseEngine:
                 # Get current persona state
                 scope_id = uid if self.persona_store.scope == "user" else "session"
                 state = self.persona_store.get_state(scope_id)
-                tone_weights = state["tone_weights"]
+                current_weights = state["tone_weights"]
                 stance_overrides = state["stance_overrides"]
+                
+                # Apply sentiment-based mood adjustment to get target weights
+                target_weights = self.relevance.apply_sentiment(sentiment, current_weights)
                 
                 # Apply volatility drift
                 volatility = self.cfg.get("personality_bias", {}).get("volatility", 0.01)
-                tone_weights = self.persona_store.apply_drift(tone_weights, volatility)
+                target_weights = self.persona_store.apply_drift(target_weights, volatility)
+                
+                # Apply smooth interpolation for gradual transitions
+                tone_weights = self.persona_store.interpolate_weights(scope_id, target_weights, current_weights)
                 
                 # Compose system prompt with personality
                 enhanced_system_prompt = self.prompt_composer.compose_prompt(
@@ -267,6 +413,9 @@ class ResponseEngine:
             if len(words) > 18:
                 reply = " ".join(words[:18]) + "."
             
+            # Add reply to token buffer
+            self.token_buffer.add_message(f"Assistant: {reply}")
+            
             # Save interaction to RAG if available
             if self.rag_engine:
                 try:
@@ -291,11 +440,13 @@ class ResponseEngine:
                 except Exception as e:
                     log.warning(f"Failed to update relationship XP: {e}")
             
-            # Update mood based on interaction if available
+            # Update mood based on sentiment if available
             if self.mood_manager:
                 try:
-                    # Positive interaction
-                    self.mood_manager.update_mood("positive_chat")
+                    if sentiment > 0.3:
+                        self.mood_manager.update_mood("positive_chat")
+                    elif sentiment < -0.3:
+                        self.mood_manager.update_mood("negative_chat")
                 except Exception as e:
                     log.warning(f"Failed to update mood: {e}")
             
@@ -306,8 +457,11 @@ class ResponseEngine:
                     state = self.persona_store.get_state(scope_id)
                     tone_weights = state["tone_weights"]
                     
-                    # Trigger evolution based on interaction type
-                    tone_weights = self.persona_store.apply_evolution(scope_id, "positive_interaction", tone_weights)
+                    # Trigger evolution based on sentiment
+                    if sentiment > 0.3:
+                        tone_weights = self.persona_store.apply_evolution(scope_id, "positive_interaction", tone_weights)
+                    elif sentiment < -0.3:
+                        tone_weights = self.persona_store.apply_evolution(scope_id, "negative_interaction", tone_weights)
                     
                     # Save updated state
                     self.persona_store.save_state(scope_id, tone_weights, state["stance_overrides"])

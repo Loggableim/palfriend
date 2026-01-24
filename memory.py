@@ -16,6 +16,61 @@ from pydantic import BaseModel, Field
 log = logging.getLogger("ChatPalBrain")
 
 
+async def extract_and_store_entities(text: str, uid: str, memory_db, openai_client) -> None:
+    """
+    Extract entities (Names, Locations, Facts) from user message using LLM.
+    
+    This enables the bot to remember personal details like "I have a dog named Max"
+    and use them in future interactions.
+    
+    Args:
+        text: User message text
+        uid: User ID
+        memory_db: MemoryDB instance
+        openai_client: OpenAI client instance
+    """
+    try:
+        # Use LLM to extract structured information
+        prompt = f"""Extract any personal information, names, locations, or facts from this message.
+        
+Message: "{text}"
+
+Return a JSON object with keys for any entities found (e.g., {{"pet": "dog named Max", "location": "Berlin", "hobby": "gaming"}}).
+If no entities found, return {{}}.
+Only return the JSON, no other text."""
+        
+        response = await asyncio.to_thread(
+            openai_client.chat.completions.create,
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a data extraction assistant. Extract personal information from user messages."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.0,
+            max_tokens=150
+        )
+        
+        result_text = response.choices[0].message.content.strip()
+        
+        # Try to parse JSON response
+        # Remove markdown code blocks if present
+        if result_text.startswith("```"):
+            result_text = result_text.split("```")[1]
+            if result_text.startswith("json"):
+                result_text = result_text[4:]
+        
+        entities = json.loads(result_text)
+        
+        if entities:
+            # Update user background with extracted entities
+            await memory_db.update_background(uid, entities)
+            log.info(f"Extracted entities for user {uid}: {entities}")
+    except json.JSONDecodeError as e:
+        log.debug(f"Failed to parse entity extraction response: {e}")
+    except Exception as e:
+        log.warning(f"Entity extraction failed: {e}")
+
+
 class UserModel(BaseModel):
     """Pydantic model for user data with strict typing."""
     uid: str
@@ -220,6 +275,19 @@ class MemoryDB:
             if background:
                 user.background.update(background)
             
+            await self._save_user(user)
+    
+    async def update_background(self, uid: str, entities: Dict[str, Any]) -> None:
+        """
+        Update user background with extracted entities.
+        
+        Args:
+            uid: User unique ID
+            entities: Dictionary of extracted entities/facts
+        """
+        async with self._lock:
+            user = await self._get_user_unlocked(uid)
+            user.background.update(entities)
             await self._save_user(user)
     
     async def get_background_info(self, uid: str) -> str:
