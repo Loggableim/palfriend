@@ -58,3 +58,11 @@ memory.db-*
 data/audio_cache/
 data/tts_cache.db
 data/tts_cache.db-*
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec.bak
+*.exe
+*.app
+*.dmg

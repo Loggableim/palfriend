@@ -50,6 +50,23 @@ The codebase has been refactored into modular components for better maintainabil
 
 ## Installation
 
+### Windows Executable (Easiest)
+
+For Windows users, we provide a standalone executable that requires no installation:
+
+1. **Download the latest release:**
+   - Go to the [Releases](https://github.com/mycommunity/palfriend/releases) page
+   - Download `palfriend-launcher.exe`
+
+2. **Run the executable:**
+   - Double-click `palfriend-launcher.exe`
+   - The web interface will start automatically
+   - Your browser will open to http://localhost:5008
+
+**Note:** The first run may take a few moments as the application initializes. The executable includes everything needed to run PalFriend - no Python or Node.js installation required!
+
+For building the executable yourself, see [BUILD_LAUNCHER.md](BUILD_LAUNCHER.md).
+
 ### Quick Install (Recommended)
 
 Using pip with setup.py:
