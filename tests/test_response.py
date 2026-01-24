@@ -101,3 +101,123 @@ def test_relevance_length_bonus():
     
     # Longer message should score higher
     assert long_score > short_score
+
+
+def test_relevance_fuzzy_spam_detection():
+    """Test fuzzy spam detection."""
+    config = {
+        "keywords_bonus": [],
+        "ignore_if_startswith": [],
+        "ignore_contains": []
+    }
+    
+    rel = Relevance(config)
+    
+    # Test common spam variations with typos
+    assert rel.is_ignored("F0llow me")
+    assert rel.is_ignored("Folow me")
+    assert rel.is_ignored("Follow mee")
+    assert rel.is_ignored("Check out my channel")
+    assert not rel.is_ignored("I follow your advice")
+
+
+def test_relevance_sentiment_positive():
+    """Test sentiment analysis for positive messages."""
+    config = {
+        "keywords_bonus": [],
+        "ignore_if_startswith": [],
+        "ignore_contains": []
+    }
+    
+    rel = Relevance(config)
+    
+    # Skip if sentiment analyzer not available
+    if not rel.sentiment_analyzer:
+        pytest.skip("vaderSentiment not installed")
+    
+    sentiment = rel.get_sentiment("I love this! This is amazing!")
+    assert sentiment > 0.3  # Should be positive
+
+
+def test_relevance_sentiment_negative():
+    """Test sentiment analysis for negative messages."""
+    config = {
+        "keywords_bonus": [],
+        "ignore_if_startswith": [],
+        "ignore_contains": []
+    }
+    
+    rel = Relevance(config)
+    
+    # Skip if sentiment analyzer not available
+    if not rel.sentiment_analyzer:
+        pytest.skip("vaderSentiment not installed")
+    
+    sentiment = rel.get_sentiment("I hate this. This is terrible.")
+    assert sentiment < -0.3  # Should be negative
+
+
+def test_relevance_sentiment_neutral():
+    """Test sentiment analysis for neutral messages."""
+    config = {
+        "keywords_bonus": [],
+        "ignore_if_startswith": [],
+        "ignore_contains": []
+    }
+    
+    rel = Relevance(config)
+    
+    # Skip if sentiment analyzer not available
+    if not rel.sentiment_analyzer:
+        pytest.skip("vaderSentiment not installed")
+    
+    sentiment = rel.get_sentiment("The car is parked outside.")
+    assert -0.5 <= sentiment <= 0.5  # Should be neutral-ish
+
+
+def test_relevance_apply_sentiment_positive():
+    """Test applying positive sentiment to tone weights."""
+    config = {
+        "keywords_bonus": [],
+        "ignore_if_startswith": [],
+        "ignore_contains": []
+    }
+    
+    rel = Relevance(config)
+    
+    tone_weights = {
+        "happy": 0.3,
+        "tired": 0.3,
+        "neutral": 0.4
+    }
+    
+    adjusted = rel.apply_sentiment(0.5, tone_weights)
+    
+    # Happy should increase
+    assert adjusted["happy"] > tone_weights["happy"]
+    # Weights should still sum to ~1.0
+    assert abs(sum(adjusted.values()) - 1.0) < 0.01
+
+
+def test_relevance_apply_sentiment_negative():
+    """Test applying negative sentiment to tone weights."""
+    config = {
+        "keywords_bonus": [],
+        "ignore_if_startswith": [],
+        "ignore_contains": []
+    }
+    
+    rel = Relevance(config)
+    
+    tone_weights = {
+        "happy": 0.3,
+        "gloomy": 0.3,
+        "neutral": 0.4
+    }
+    
+    adjusted = rel.apply_sentiment(-0.5, tone_weights)
+    
+    # Gloomy should increase
+    assert adjusted["gloomy"] > tone_weights["gloomy"]
+    # Weights should still sum to ~1.0
+    assert abs(sum(adjusted.values()) - 1.0) < 0.01

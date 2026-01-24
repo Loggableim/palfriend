@@ -224,3 +224,76 @@ def test_unknown_trigger(test_config, temp_db):
     
     # Should be unchanged
     assert evolved == initial_weights
+
+
+def test_interpolate_weights_disabled(test_config, temp_db):
+    """Test interpolation when disabled."""
+    config = test_config.copy()
+    config["interpolation"] = {"enabled": False}
+    
+    store = PersonaStateStore(config, temp_db)
+    
+    current = {"formal": 0.8, "casual": 0.1, "playful": 0.1}
+    target = {"formal": 0.1, "casual": 0.8, "playful": 0.1}
+    
+    # Should return target immediately when disabled
+    result = store.interpolate_weights("test_scope", target, current)
+    assert result == target
+
+
+def test_interpolate_weights_gradual(test_config, temp_db):
+    """Test gradual interpolation over time."""
+    import time
+    
+    config = test_config.copy()
+    config["interpolation"] = {"enabled": True, "duration_seconds": 1.0}  # 1 second for testing
+    
+    store = PersonaStateStore(config, temp_db)
+    
+    current = {"formal": 0.8, "casual": 0.1, "playful": 0.1}
+    target = {"formal": 0.1, "casual": 0.8, "playful": 0.1}
+    
+    # First call should return current
+    result1 = store.interpolate_weights("test_scope", target, current)
+    assert result1 == current
+    
+    # Wait a bit
+    time.sleep(0.5)  # Half duration
+    
+    # Should be somewhere between current and target
+    result2 = store.interpolate_weights("test_scope", target, result1)
+    assert result2["formal"] < current["formal"]
+    assert result2["formal"] > target["formal"]
+    assert result2["casual"] > current["casual"]
+    assert result2["casual"] < target["casual"]
+    
+    # Wait until completion
+    time.sleep(0.6)
+    
+    # Should be at target now
+    result3 = store.interpolate_weights("test_scope", target, result2)
+    assert abs(result3["formal"] - target["formal"]) < 0.01
+    assert abs(result3["casual"] - target["casual"]) < 0.01
+
+
+def test_interpolate_weights_target_change(test_config, temp_db):
+    """Test interpolation when target changes mid-transition."""
+    config = test_config.copy()
+    config["interpolation"] = {"enabled": True, "duration_seconds": 10.0}
+    
+    store = PersonaStateStore(config, temp_db)
+    
+    current = {"formal": 0.8, "casual": 0.1, "playful": 0.1}
+    target1 = {"formal": 0.1, "casual": 0.8, "playful": 0.1}
+    target2 = {"formal": 0.3, "casual": 0.3, "playful": 0.4}
+    
+    # Start interpolation to target1
+    result1 = store.interpolate_weights("test_scope", target1, current)
+    assert result1 == current
+    
+    # Change target to target2
+    result2 = store.interpolate_weights("test_scope", target2, result1)
+    
+    # Should restart interpolation with new target
+    assert "test_scope" in store._interpolation_state
+    assert store._interpolation_state["test_scope"]["target"] == target2
