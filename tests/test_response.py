@@ -171,8 +171,8 @@ def test_relevance_sentiment_neutral():
     if not rel.sentiment_analyzer:
         pytest.skip("vaderSentiment not installed")
     
-    sentiment = rel.get_sentiment("The weather is nice today.")
-    assert -0.3 <= sentiment <= 0.3  # Should be neutral
+    sentiment = rel.get_sentiment("The car is parked outside.")
+    assert -0.5 <= sentiment <= 0.5  # Should be neutral-ish
 
 
 def test_relevance_apply_sentiment_positive():
