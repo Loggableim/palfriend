@@ -50,3 +50,11 @@ frontend/.env.production.local
 # SQLite memory database
 memory.db
 memory.db-*
+
+# Environment variables
+.env
+
+# TTS cache and data
+data/audio_cache/
+data/tts_cache.db
+data/tts_cache.db-*

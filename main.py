@@ -8,7 +8,7 @@ import json
 import logging
 import os
 import time
-from typing import Dict, Any, Set
+from typing import Dict, Any, Set, Optional
 
 import websockets
 from TikTokLive import TikTokLiveClient
@@ -32,6 +32,8 @@ from response import Relevance, ResponseEngine
 from outbox import OutboxBatcher
 from events import EventDeduper, make_signature, touch_viewer, schedule_greeting
 from gui import ConfigGUI
+from modules.audio import AudioManager
+from modules.tts import TTSManager
 
 # Constants
 MAX_REPLY_THRESHOLD = 0.8
@@ -144,58 +146,107 @@ async def send_to_animaze(text: str, cfg: Dict[str, Any]) -> None:
     await message_queue.put(t)
 
 
-async def sender_worker(cfg: Dict[str, Any], speech: SpeechState) -> None:
+async def sender_worker(
+    cfg: Dict[str, Any], 
+    speech: SpeechState,
+    tts_manager: Optional[TTSManager] = None,
+    audio_manager: Optional[AudioManager] = None
+) -> None:
     """
-    Worker that sends messages to Animaze.
+    Worker that sends messages to Animaze or uses local TTS.
     
     Args:
         cfg: Configuration dictionary
         speech: SpeechState instance
+        tts_manager: Optional TTSManager for local TTS
+        audio_manager: Optional AudioManager for audio playback
     """
     global LAST_OUTPUT_TS, animaze_ws
+    
+    # Check if TTS is enabled
+    tts_enabled = bool(int(cfg.get("tts", {}).get("enabled", 0)))
+    use_local_tts = tts_enabled and tts_manager and audio_manager
+    
+    if use_local_tts:
+        log.info("Using local TTS with Fish Audio")
+    else:
+        log.info("Using Animaze WebSocket for TTS")
     
     while True:
         text = await message_queue.get()
         
-        # Retry connection
-        for _ in range(6):
-            await connect_animaze(cfg, speech)
-            if animaze_ws is not None:
-                break
-            await asyncio.sleep(0.5)
-        
-        if animaze_ws is None:
-            log.warning("ChatPal nicht erreichbar, retry wird eingeplant")
-            await asyncio.sleep(0.8)
-            await message_queue.put(text)
-            continue
-        
-        await speech.wait_idle()
-        
-        try:
-            payload = {
-                "action": "ChatbotSendMessage",
-                "id": str(time.time_ns()),
-                "message": text,
-                "priority": 1
-            }
-            log.info(f"→ ChatPal SEND: {payload['message']}")
-            await animaze_ws.send(json.dumps(payload))
+        if use_local_tts:
+            # Use local TTS and audio playback
+            await speech.wait_idle()
             
-            st = int(cfg.get("speech", {}).get("wait_start_timeout_ms", 1200)) / 1000.0
-            mt = int(cfg.get("speech", {}).get("max_speech_ms", 15000)) / 1000.0
-            pg = int(cfg.get("speech", {}).get("post_gap_ms", 250)) / 1000.0
+            try:
+                log.info(f"→ TTS Synthesizing: {text}")
+                
+                # Synthesize audio
+                audio_file = await tts_manager.synthesize_to_file(text)
+                
+                if audio_file:
+                    # Mark speech started
+                    speech.mark_started()
+                    
+                    # Play audio
+                    await audio_manager.play_file(audio_file)
+                    
+                    # Mark speech ended
+                    speech.mark_ended()
+                    
+                    # Post-speech gap
+                    pg = int(cfg.get("speech", {}).get("post_gap_ms", 250)) / 1000.0
+                    await asyncio.sleep(pg)
+                    
+                    LAST_OUTPUT_TS = time.time()
+                    log.info(f"✓ TTS playback completed")
+                else:
+                    log.error("TTS synthesis failed, skipping message")
+            except Exception as e:
+                log.error(f"TTS/Audio error: {e}")
+                speech.mark_ended()
+        else:
+            # Original Animaze WebSocket behavior
+            # Retry connection
+            for _ in range(6):
+                await connect_animaze(cfg, speech)
+                if animaze_ws is not None:
+                    break
+                await asyncio.sleep(0.5)
             
-            started = await speech.wait_started(timeout=st)
-            if started:
-                await speech.wait_ended(timeout=mt)
-            await asyncio.sleep(pg)
+            if animaze_ws is None:
+                log.warning("ChatPal nicht erreichbar, retry wird eingeplant")
+                await asyncio.sleep(0.8)
+                await message_queue.put(text)
+                continue
             
-            LAST_OUTPUT_TS = time.time()
-        except Exception as e:
-            log.error(f"ChatPal SEND Fehler: {e}")
-            await asyncio.sleep(0.5)
-            await message_queue.put(text)
+            await speech.wait_idle()
+            
+            try:
+                payload = {
+                    "action": "ChatbotSendMessage",
+                    "id": str(time.time_ns()),
+                    "message": text,
+                    "priority": 1
+                }
+                log.info(f"→ ChatPal SEND: {payload['message']}")
+                await animaze_ws.send(json.dumps(payload))
+                
+                st = int(cfg.get("speech", {}).get("wait_start_timeout_ms", 1200)) / 1000.0
+                mt = int(cfg.get("speech", {}).get("max_speech_ms", 15000)) / 1000.0
+                pg = int(cfg.get("speech", {}).get("post_gap_ms", 250)) / 1000.0
+                
+                started = await speech.wait_started(timeout=st)
+                if started:
+                    await speech.wait_ended(timeout=mt)
+                await asyncio.sleep(pg)
+                
+                LAST_OUTPUT_TS = time.time()
+            except Exception as e:
+                log.error(f"ChatPal SEND Fehler: {e}")
+                await asyncio.sleep(0.5)
+                await message_queue.put(text)
         
         await asyncio.sleep(0.02)
 
@@ -657,6 +708,41 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
     greet_tasks = {}
     PENDING_JOINS = set()
     
+    # Initialize TTS and Audio managers if enabled
+    tts_manager = None
+    audio_manager = None
+    tts_enabled = bool(int(cfg.get("tts", {}).get("enabled", 0)))
+    
+    if tts_enabled:
+        try:
+            log.info("Initializing TTS and Audio systems...")
+            
+            # Initialize AudioManager
+            audio_manager = AudioManager(cfg)
+            
+            # Initialize TTSManager
+            tts_manager = TTSManager(cfg)
+            await tts_manager.initialize()
+            
+            log.info("TTS and Audio systems initialized successfully")
+            
+            # Schedule periodic cache cleanup
+            async def cleanup_tts_cache():
+                while True:
+                    await asyncio.sleep(86400)  # Once per day
+                    try:
+                        await tts_manager.clean_old_cache()
+                        await tts_manager.clean_temp_files()
+                    except Exception as e:
+                        log.error(f"TTS cache cleanup error: {e}")
+            
+            asyncio.create_task(cleanup_tts_cache())
+        except Exception as e:
+            log.error(f"Failed to initialize TTS/Audio: {e}")
+            log.warning("Falling back to Animaze WebSocket mode")
+            tts_manager = None
+            audio_manager = None
+    
     # Start microphone monitor if enabled
     micmon = None
     mic_enabled = int(cfg.get("microphone", {}).get("enabled", 1))
@@ -690,7 +776,7 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
     )
     
     # Start background tasks
-    asyncio.create_task(sender_worker(cfg, speech))
+    asyncio.create_task(sender_worker(cfg, speech, tts_manager, audio_manager))
     asyncio.create_task(clean_memory_periodic(memory_db, mem_cfg.get("decay_days", 90)))
     asyncio.create_task(batcher.worker())
     asyncio.create_task(join_announcer_worker(cfg, batcher, speech, mic))

@@ -20,6 +20,21 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "animaze": {"host": "localhost", "port": 9000, "retry_max_attempts": 5, "retry_base_delay": 1.0},
     "openai": {"api_key": "", "model": "gpt-4o-mini", "cache_size": 128, "request_timeout": 10.0},
     "style": {"max_line_length": 140},
+    "tts": {
+        "enabled": 0,
+        "provider": "fish_audio",
+        "fish_audio_api_key": "",
+        "fish_audio_voice_id": "",
+        "format": "wav",
+        "sample_rate": 44100,
+        "cache_enabled": 1,
+        "max_cache_age_days": 30,
+    },
+    "audio": {
+        "output_device": "",
+        "sample_rate": 44100,
+        "channels": 1,
+    },
     "comment": {
         "enabled": 1,
         "global_cooldown": 6,

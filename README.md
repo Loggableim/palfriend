@@ -119,6 +119,7 @@ Key configuration sections:
 - Real-time TikTok live event processing (comments, gifts, follows, etc.)
 - AI-powered response generation using OpenAI
 - **🎭 Personality-Bias System**: Configurable, evolving AI personality with drift, evolution, and refusal logic
+- **🗣️ Fish Audio TTS Integration**: Local text-to-speech with caching and audio routing (see [TTS_README.md](TTS_README.md))
 - Voice activity detection for microphone input
 - Message batching and prioritization
 - User memory and interaction history
@@ -141,6 +142,19 @@ Give your AI a dynamic personality that evolves over time:
 - **Deterministic Testing**: Seed-based reproducibility for testing
 
 See [PERSONALITY_BIAS.md](PERSONALITY_BIAS.md) for complete documentation.
+
+#### Fish Audio TTS Integration
+
+Independent text-to-speech system as an alternative to Animaze:
+- **Local Generation**: Uses Fish Audio API for high-quality speech synthesis
+- **Audio Routing**: Route to Virtual Audio Cable or any output device
+- **Smart Caching**: SQLite-based cache reduces API costs and latency
+- **Voice Library**: Script to fetch and manage available Fish Audio voices
+- **Backward Compatible**: Falls back to Animaze WebSocket if disabled
+
+Enable TTS by setting `tts.enabled: 1` in settings.yaml and configuring your Fish Audio API key in `.env`.
+
+See [TTS_README.md](TTS_README.md) for complete setup and usage documentation.
 
 #### RAG Memory System
 
