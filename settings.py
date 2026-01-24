@@ -21,7 +21,7 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "openai": {"api_key": "", "model": "gpt-4o-mini", "cache_size": 128, "request_timeout": 10.0},
     "style": {"max_line_length": 140},
     "tts": {
-        "enabled": 1,
+        "enabled": 0,
         "provider": "fish_audio",
         "fish_audio_api_key": "",
         "fish_audio_voice_id": "",

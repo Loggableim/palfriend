@@ -6,6 +6,8 @@ import asyncio
 import hashlib
 import logging
 import os
+import tempfile
+import time
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -194,7 +196,6 @@ class TTSManager:
                     file_path = row[0]
                     if os.path.exists(file_path):
                         # Update access stats
-                        import time
                         await self.db.execute(
                             "UPDATE tts_cache SET access_count = access_count + 1, last_accessed = ? WHERE text_hash = ?",
                             (int(time.time()), text_hash)
@@ -233,7 +234,6 @@ class TTSManager:
                 f.write(audio_data)
             
             # Store in database
-            import time
             now = int(time.time())
             
             if self.db:
@@ -281,8 +281,6 @@ class TTSManager:
             return file_path
         else:
             # Save to temporary file
-            import tempfile
-            import time
             temp_path = self.cache_dir / f"temp_{int(time.time())}.wav"
             with open(temp_path, "wb") as f:
                 f.write(audio_data)
@@ -299,7 +297,6 @@ class TTSManager:
             return 0
         
         try:
-            import time
             cutoff = int(time.time()) - (self.max_cache_age_days * 86400)
             
             # Get old entries
