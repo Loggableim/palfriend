@@ -84,8 +84,6 @@ class OutboxBatcher:
             joined = self.sep.join(texts)
             if len(joined) > self.max_chars or len(self.buffer) >= self.max_items:
                 await self._flush_locked()
-            else:
-                pass  # Log message already printed above
     
     async def worker(self) -> None:
         """

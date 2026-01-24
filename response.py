@@ -5,7 +5,6 @@ Response generation and relevance scoring module.
 import asyncio
 import logging
 import re
-from functools import lru_cache
 from typing import Dict, Any, Optional
 
 import openai
@@ -125,8 +124,6 @@ class ResponseEngine:
         self.memory_db = memory_db
         self.openai_client = openai.OpenAI(api_key=cfg["openai"]["api_key"])
         self.system_prompt = cfg.get("system_prompt", "")
-        cache_size = int(cfg.get("openai", {}).get("cache_size", 128))
-        self.reply_to_comment = lru_cache(maxsize=cache_size)(self._reply_to_comment_impl)
         self.timeout = float(cfg.get("openai", {}).get("request_timeout", 10.0))
         
         # Initialize new features
@@ -165,21 +162,7 @@ class ResponseEngine:
             self.persona_store = None
             self.prompt_composer = None
     
-    def _make_cache_key(self, nick: str, text: str, uid: str) -> tuple:
-        """
-        Create cache key from normalized inputs.
-        
-        Args:
-            nick: User nickname
-            text: Comment text
-            uid: User ID
-        
-        Returns:
-            Cache key tuple
-        """
-        return (nick, text.lower().strip(), uid)
-    
-    async def _reply_to_comment_impl(self, nick: str, text: str, uid: str) -> Optional[str]:
+    async def reply_to_comment(self, nick: str, text: str, uid: str) -> Optional[str]:
         """
         Generate a reply to a user comment using OpenAI.
         
