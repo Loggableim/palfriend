@@ -20,5 +20,6 @@ soundfile>=0.12.0
 python-dotenv>=1.0.0
 
 # Build tools (optional - only needed for creating executables)
+# PyInstaller 6.x is compatible with Python 3.11 and 3.12 (NOT 3.13+)
 # Uncomment the line below if you want to build the launcher executable
-# pyinstaller>=6.0.0
+# pyinstaller>=6.0.0,<7.0.0

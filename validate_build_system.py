@@ -8,6 +8,26 @@ import os
 import sys
 
 
+def check_python_version():
+    """Check that Python version is compatible with build requirements."""
+    version = sys.version_info
+    status = "✓"
+    if version[:2] >= (3, 13):
+        status = "✗"
+        print(f"{status} Python version: {version.major}.{version.minor}.{version.micro} (INCOMPATIBLE)")
+        print("    ERROR: Python 3.13+ is not supported by PyInstaller and required dependencies")
+        print("    Please use Python 3.12.x or 3.11.x for building")
+        return False
+    elif version[:2] < (3, 11):
+        status = "⚠"
+        print(f"{status} Python version: {version.major}.{version.minor}.{version.micro} (OLD)")
+        print("    Warning: Python 3.11 or 3.12 is recommended")
+        return True
+    else:
+        print(f"{status} Python version: {version.major}.{version.minor}.{version.micro} (compatible)")
+        return True
+
+
 def check_file(path, description):
     """Check if a file exists."""
     exists = os.path.exists(path)
@@ -45,6 +65,11 @@ def main():
     print()
     
     all_passed = True
+    
+    # Check Python version first
+    print("Checking Python version...")
+    all_passed &= check_python_version()
+    print()
     
     # Check core files
     print("Checking core files...")

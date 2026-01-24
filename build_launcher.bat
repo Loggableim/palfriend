@@ -11,13 +11,36 @@ REM Check if Python is installed
 python --version >nul 2>&1
 if errorlevel 1 (
     echo Error: Python 3 is not installed
-    echo Please install Python 3.8 or higher from https://www.python.org/
+    echo Please install Python 3.12 from https://www.python.org/
     pause
     exit /b 1
 )
 
+REM Check Python version and warn if >= 3.13
+python -c "import sys; exit(0 if sys.version_info[:2] < (3, 13) else 1)" >nul 2>&1
+if errorlevel 1 (
+    echo ==================================
+    echo ERROR: Unsupported Python Version
+    echo ==================================
+    echo.
+    python --version
+    echo.
+    echo This build requires Python 3.12.x or 3.11.x
+    echo Python 3.13 and newer are NOT supported by PyInstaller and required dependencies.
+    echo.
+    echo Please install Python 3.12.x from https://www.python.org/downloads/
+    echo.
+    pause
+    exit /b 1
+)
+
+REM Display Python version
+echo Python version check:
+python --version
+echo.
+
 echo Checking Python dependencies...
-pip install -q "pyinstaller>=6.0.0"
+pip install -q "pyinstaller>=6.0.0,<7.0.0"
 
 REM Check if Node.js is installed (for frontend build)
 node --version >nul 2>&1
