@@ -75,10 +75,13 @@ This release marks the transformation of PalFriend from a development project to
   - Integration test approach
   - Manual testing checklist
 
-### 8. Git Tag v1.0.0 ✅
+### 8. Git Tag v1.0.0 and Release Preparation ✅
 - Tag created with comprehensive release notes
-- Includes feature summary and changelog reference
-- Ready to push after PR merge
+- Points to commit with all release materials
+- **RELEASE_NOTES_v1.0.0.md**: Ready-to-use release notes for GitHub
+- **CREATE_RELEASE_GUIDE.md**: Step-by-step instructions for creating the release
+- **push_tag.sh / push_tag.bat**: Helper scripts to push the tag
+- Ready to push after PR merge and create GitHub release
 
 ### 9. Dependencies Updated ✅
 - **Python**: All dependencies compatible with Python 3.12
@@ -148,6 +151,10 @@ This release marks the transformation of PalFriend from a development project to
 6. `.gitattributes` - Line ending config (837 bytes)
 7. `.github/workflows/ci.yml` - CI pipeline (5,026 bytes)
 8. `.github/workflows/codeql.yml` - Security scanning (1,184 bytes)
+9. `RELEASE_NOTES_v1.0.0.md` - Formatted release notes for GitHub
+10. `CREATE_RELEASE_GUIDE.md` - Instructions for creating the release
+11. `push_tag.sh` - Linux/Mac script to push v1.0.0 tag
+12. `push_tag.bat` - Windows script to push v1.0.0 tag
 
 ### Files Modified
 1. `README.md` - Enhanced with troubleshooting and installation
@@ -159,11 +166,12 @@ This release marks the transformation of PalFriend from a development project to
 7. `frontend/index.html` - Moved to root directory
 
 ### Total Changes
-- **8 new files** created
+- **12 new files** created (4 related to GitHub release)
 - **7 files** modified
-- **Documentation**: 30,000+ words added
+- **Documentation**: 35,000+ words added
 - **Code**: Security fixes applied
 - **Configuration**: Optimized for production
+- **Release Materials**: Complete GitHub release preparation
 
 ---
 
@@ -263,25 +271,55 @@ This release represents a comprehensive transformation with:
 
 ## Next Steps After PR Merge
 
-1. **Push the git tag**:
-   ```bash
-   git push origin v1.0.0
-   ```
+### 1. Push the Git Tag (Required)
 
-2. **Create GitHub Release**:
-   - Use the CHANGELOG.md content
-   - Attach build artifacts if needed
-   - Link to documentation
+The v1.0.0 tag has been created locally and needs to be pushed to GitHub:
 
-3. **Announce the Release**:
-   - Update project description
-   - Share in relevant communities
-   - Update documentation links
+```bash
+# Use the provided helper script (recommended)
+./push_tag.sh         # Linux/Mac
+# or
+push_tag.bat          # Windows
 
-4. **Monitor CI/CD**:
-   - Watch GitHub Actions workflows
-   - Review CodeQL security reports
-   - Address any issues promptly
+# Or push manually
+git push origin v1.0.0
+```
+
+### 2. Create GitHub Release (Required)
+
+Follow the detailed instructions in **CREATE_RELEASE_GUIDE.md**:
+
+1. Go to https://github.com/Loggableim/palfriend/releases
+2. Click "Draft a new release"
+3. Select tag `v1.0.0`
+4. Title: `v1.0.0 - Production Ready`
+5. Copy content from **RELEASE_NOTES_v1.0.0.md** as the description
+6. (Optional) Attach Windows executables:
+   - `palfriendlauncher.exe` - GUI installer
+   - `palfriend-v1.0.0-windows.zip` - Full bundle
+7. Check "Set as the latest release"
+8. Publish
+
+**Why This is Important:** The README.md (line 58) references the releases page for downloading executables. Creating this release makes those instructions functional.
+
+### 3. Build Windows Executables (Optional but Recommended)
+
+See **BUILD_LAUNCHER.md** for instructions:
+- Requires Python 3.12.x on Windows
+- Produces `palfriendlauncher.exe` and `palfriend.exe`
+- Alternative: Use GitHub Actions workflow to build automatically
+
+### 4. Announce the Release
+
+- Update project description
+- Share in relevant communities
+- Update documentation links
+
+### 5. Monitor CI/CD
+
+- Watch GitHub Actions workflows
+- Review CodeQL security reports
+- Address any issues promptly
 
 ---
 
