@@ -130,8 +130,17 @@ python -c "import openai; import flask; import TikTokLive; print('Core dependenc
 To check if RAG features are available:
 
 ```bash
-python -c "try: import chromadb; print('RAG features available')
-except ImportError: print('RAG features not installed (optional)')"
+python -c "import sys; exec('try:\\n    import chromadb\\n    print(\"RAG features available\")\\nexcept ImportError:\\n    print(\"RAG features not installed (optional)\")')"
+```
+
+Or on Unix/Linux/macOS:
+
+```bash
+python -c 'try:
+    import chromadb
+    print("RAG features available")
+except ImportError:
+    print("RAG features not installed (optional)")'
 ```
 
 ## Next Steps
