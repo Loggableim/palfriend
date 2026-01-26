@@ -1,3 +1,35 @@
+Metadata-Version: 2.1
+Name: palfriend
+Version: 1.0.0
+Summary: Modern TikTok live interaction bot with AI-powered responses and web interface
+Home-page: https://github.com/mycommunity/palfriend
+Author: PalFriend Contributors
+License: MIT
+Project-URL: Bug Reports, https://github.com/mycommunity/palfriend/issues
+Project-URL: Source, https://github.com/mycommunity/palfriend
+Project-URL: Documentation, https://github.com/mycommunity/palfriend#readme
+Keywords: tiktok chatbot ai websocket flask react live-streaming
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: End Users/Desktop
+Classifier: Topic :: Communications :: Chat
+Classifier: Topic :: Multimedia :: Sound/Audio
+Classifier: Topic :: Internet :: WWW/HTTP :: WSGI :: Application
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: JavaScript
+Classifier: Framework :: Flask
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Provides-Extra: dev
+Provides-Extra: rag
+License-File: LICENSE
+
 # PalFriend - TikTok ChatPal Brain
 
 A modular TikTok live interaction bot that connects to Animaze for real-time chat responses.

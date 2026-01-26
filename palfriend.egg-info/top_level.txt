@@ -1,0 +1,11 @@
+app
+events
+gui
+main
+memory
+modules
+outbox
+response
+settings
+speech
+utils
