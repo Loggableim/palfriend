@@ -8,6 +8,26 @@ import os
 import sys
 
 
+def check_python_version():
+    """Check that Python version is compatible with build requirements."""
+    version = sys.version_info
+    status = "✓"
+    if version[:2] >= (3, 13):
+        status = "✗"
+        print(f"{status} Python version: {version.major}.{version.minor}.{version.micro} (INCOMPATIBLE)")
+        print("    ERROR: Python 3.13+ is not supported by PyInstaller and required dependencies")
+        print("    Please use Python 3.12.x or 3.11.x for building")
+        return False
+    elif version[:2] < (3, 11):
+        status = "⚠"
+        print(f"{status} Python version: {version.major}.{version.minor}.{version.micro} (OLD)")
+        print("    Warning: Python 3.11 or 3.12 is recommended")
+        return True
+    else:
+        print(f"{status} Python version: {version.major}.{version.minor}.{version.micro} (compatible)")
+        return True
+
+
 def check_file(path, description):
     """Check if a file exists."""
     exists = os.path.exists(path)
@@ -46,10 +66,18 @@ def main():
     
     all_passed = True
     
+    # Check Python version first
+    print("Checking Python version...")
+    all_passed &= check_python_version()
+    print()
+    
     # Check core files
     print("Checking core files...")
     all_passed &= check_file("launcher.py", "Launcher entry point")
-    all_passed &= check_file("palfriend-launcher.spec", "PyInstaller spec file")
+    all_passed &= check_file("bootstrap_launcher.py", "Bootstrapper entry point")
+    check_file("palfriend-launcher.spec", "Legacy PyInstaller spec file (optional)")
+    all_passed &= check_file("palfriend.spec", "Main app PyInstaller spec file")
+    all_passed &= check_file("palfriendlauncher.spec", "Bootstrapper PyInstaller spec file")
     all_passed &= check_file("build_launcher.bat", "Windows build script")
     all_passed &= check_file("build_launcher.sh", "Linux/Mac build script")
     all_passed &= check_file("BUILD_LAUNCHER.md", "Build documentation")
@@ -68,27 +96,37 @@ def main():
     all_passed &= check_file(".github/workflows/build_launcher.yml", "Build workflow")
     all_passed &= check_content(
         ".github/workflows/build_launcher.yml",
-        "palfriend-launcher.spec",
-        "Workflow uses spec file"
+        "palfriend.spec",
+        "Workflow builds palfriend.exe"
+    )
+    all_passed &= check_content(
+        ".github/workflows/build_launcher.yml",
+        "palfriendlauncher.spec",
+        "Workflow builds palfriendlauncher.exe"
     )
     print()
     
     # Check spec file content
     print("Checking spec file configuration...")
     all_passed &= check_content(
-        "palfriend-launcher.spec",
+        "palfriend.spec",
         "launcher.py",
-        "Spec references launcher.py"
+        "Main spec references launcher.py"
     )
     all_passed &= check_content(
-        "palfriend-launcher.spec",
+        "palfriend.spec",
         "hiddenimports",
-        "Spec defines hidden imports"
+        "Main spec defines hidden imports"
     )
     all_passed &= check_content(
-        "palfriend-launcher.spec",
+        "palfriend.spec",
         "datas",
-        "Spec defines data files"
+        "Main spec defines data files"
+    )
+    all_passed &= check_content(
+        "palfriendlauncher.spec",
+        "bootstrap_launcher.py",
+        "Bootstrapper spec references bootstrap_launcher.py"
     )
     print()
     
@@ -149,7 +187,9 @@ def main():
         print("Next steps:")
         print("1. Run build_launcher.bat (Windows) or build_launcher.sh (Linux/Mac)")
         print("2. Or create a PR to trigger the GitHub Actions workflow")
-        print("3. Test the generated executable: dist/palfriend-launcher.exe")
+        print("3. Test the generated executables:")
+        print("   - dist/palfriend/palfriend.exe (main app)")
+        print("   - dist/palfriendlauncher.exe (bootstrapper)")
         return 0
     else:
         print("✗ Some validation checks failed!")
