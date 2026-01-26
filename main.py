@@ -45,14 +45,14 @@ log = logging.getLogger("ChatPalBrain")
 
 # Global state
 animaze_ws = None
-message_queue: asyncio.Queue[str] = asyncio.Queue()
-comment_queue: asyncio.Queue[dict] = asyncio.Queue()
-gift_queue: asyncio.Queue = asyncio.Queue()
-like_queue: asyncio.Queue = asyncio.Queue()
-join_queue: asyncio.Queue = asyncio.Queue()
-follow_queue: asyncio.Queue = asyncio.Queue()
-share_queue: asyncio.Queue = asyncio.Queue()
-subscribe_queue: asyncio.Queue = asyncio.Queue()
+message_queue: Optional[asyncio.Queue[str]] = None
+comment_queue: Optional[asyncio.Queue[dict]] = None
+gift_queue: Optional[asyncio.Queue] = None
+like_queue: Optional[asyncio.Queue] = None
+join_queue: Optional[asyncio.Queue] = None
+follow_queue: Optional[asyncio.Queue] = None
+share_queue: Optional[asyncio.Queue] = None
+subscribe_queue: Optional[asyncio.Queue] = None
 
 LAST_OUTPUT_TS = 0.0
 LAST_JOIN_ANNOUNCE_TS = 0.0
@@ -685,6 +685,18 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
         gui: Optional GUI instance for callbacks
     """
     global viewers, greet_tasks, PENDING_JOINS
+    global message_queue, comment_queue, gift_queue, like_queue
+    global join_queue, follow_queue, share_queue, subscribe_queue
+    
+    # Initialize asyncio queues in the current event loop
+    message_queue = asyncio.Queue()
+    comment_queue = asyncio.Queue()
+    gift_queue = asyncio.Queue()
+    like_queue = asyncio.Queue()
+    join_queue = asyncio.Queue()
+    follow_queue = asyncio.Queue()
+    share_queue = asyncio.Queue()
+    subscribe_queue = asyncio.Queue()
     
     # Initialize state
     speech = SpeechState()
