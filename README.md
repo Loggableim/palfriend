@@ -220,6 +220,23 @@ This is a refactored version of the original `pal_ALONE.py` monolithic script. T
 
 ### Common Issues and Solutions
 
+#### Dependency Conflicts
+
+**Problem**: `ERROR: Cannot install palfriend because these package versions have conflicting dependencies`
+
+**Solution**: This usually happens when trying to install optional RAG features on unsupported platforms.
+1. Install only core dependencies: `pip install -r requirements.txt`
+2. Skip the RAG features (they're optional)
+3. See [INSTALLATION.md](INSTALLATION.md) for detailed platform-specific instructions
+
+**Problem**: `onnxruntime` installation fails (Windows ARM, some other platforms)
+
+**Solution**: 
+- The RAG features are optional and require `onnxruntime` which isn't available on all platforms
+- Install only core dependencies: `pip install -r requirements.txt`
+- The application will work perfectly without RAG features
+- You'll see a warning in the logs but the app continues normally
+
 #### Application Won't Start
 
 **Problem**: `ModuleNotFoundError` when starting the application

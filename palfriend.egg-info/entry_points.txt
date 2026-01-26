@@ -1,3 +1,0 @@
-[console_scripts]
-palfriend-legacy = main:main
-palfriend-web = app:main
