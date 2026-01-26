@@ -689,8 +689,8 @@ async def start_all(cfg: Dict[str, Any], gui=None) -> None:
     global join_queue, follow_queue, share_queue, subscribe_queue
     
     # Initialize asyncio queues in the current event loop
-    message_queue = asyncio.Queue()
-    comment_queue = asyncio.Queue()
+    message_queue = asyncio.Queue[str]()
+    comment_queue = asyncio.Queue[dict]()
     gift_queue = asyncio.Queue()
     like_queue = asyncio.Queue()
     join_queue = asyncio.Queue()
