@@ -50,6 +50,8 @@ The codebase has been refactored into modular components for better maintainabil
 
 ## Installation
 
+📖 **For detailed installation instructions, including platform-specific notes and troubleshooting, see [INSTALLATION.md](INSTALLATION.md)**
+
 ### Windows Executable (Easiest)
 
 For Windows users, we provide standalone executables that require no installation:
@@ -88,7 +90,12 @@ pip install -e .
 
 # Or install with development dependencies
 pip install -e ".[dev]"
+
+# Optional: Install RAG (vector memory) features (requires compatible platform)
+pip install -e ".[rag]"
 ```
+
+**Note:** RAG features require `onnxruntime` which may not be available on all platforms (e.g., Windows ARM). If installation fails, the app will work fine without RAG features.
 
 ### Manual Installation
 
@@ -212,6 +219,23 @@ This is a refactored version of the original `pal_ALONE.py` monolithic script. T
 ## Troubleshooting
 
 ### Common Issues and Solutions
+
+#### Dependency Conflicts
+
+**Problem**: `ERROR: Cannot install palfriend because these package versions have conflicting dependencies`
+
+**Solution**: This usually happens when trying to install optional RAG features on unsupported platforms.
+1. Install only core dependencies: `pip install -r requirements.txt`
+2. Skip the RAG features (they're optional)
+3. See [INSTALLATION.md](INSTALLATION.md) for detailed platform-specific instructions
+
+**Problem**: `onnxruntime` installation fails (Windows ARM, some other platforms)
+
+**Solution**: 
+- The RAG features are optional and require `onnxruntime` which isn't available on all platforms
+- Install only core dependencies: `pip install -r requirements.txt`
+- The application will work perfectly without RAG features
+- You'll see a warning in the logs but the app continues normally
 
 #### Application Won't Start
 

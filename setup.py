@@ -71,6 +71,10 @@ setup(
             'flake8>=6.0.0',
             'mypy>=1.4.0',
         ],
+        'rag': [
+            'chromadb>=1.3.0',
+            'sentence-transformers>=2.2.0',
+        ],
     },
     
     # Entry points for command-line scripts
