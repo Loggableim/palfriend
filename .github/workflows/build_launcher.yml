@@ -48,7 +48,7 @@ jobs:
         pyinstaller --noconfirm palfriend.spec
     
     - name: Upload palfriend artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: palfriend-app
         path: dist/palfriend/
@@ -87,7 +87,7 @@ jobs:
         pyinstaller --noconfirm palfriendlauncher.spec
     
     - name: Upload launcher artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: palfriendlauncher-exe
         path: dist/palfriendlauncher.exe
@@ -102,7 +102,7 @@ jobs:
       shell: cmd
     
     - name: Upload distribution bundle
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: palfriend-distribution
         path: release-bundle/
